@@ -11,23 +11,10 @@
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
 
+two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2);
+two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2);
+two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2);
 
-struct two_d_vector
-{
-    double x; 
-    double y;
-};
-
-struct two_d_body
-{
-    double mass; // in kg
-    double radius; //in m
-    struct two_d_vector pos;
-    struct two_d_vector velocity;
-};
-
-struct two_d_vector* equation_of_motion(struct two_d_body *b1, struct two_d_body *b2);
-struct two_d_vector* relative_equation_of_motion(struct two_d_body *b1, struct two_d_body *b2);
 
 // Function to draw a circle at (cx, cy) with radius 
 void drawCircle(float cx, float cy, float r, int num_segments) {
@@ -44,7 +31,7 @@ void drawCircle(float cx, float cy, float r, int num_segments) {
     glEnd();
 }
 
-int render(struct two_d_body* body1, struct two_d_body* body2) {
+int render( two_d_body* body1,  two_d_body* body2) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
@@ -99,7 +86,8 @@ int render(struct two_d_body* body1, struct two_d_body* body2) {
         // float com_x = normalize(barycenter->x, x_min, x_max);
         // float com_y = normalize(barycenter->y, y_min, y_max);
 
-        struct two_d_vector *cent_of_m = relative_equation_of_motion(body1, body2);
+         two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2);
+        //  two_d_vector *cent_of_m = equation_of_motion(body1, body2);
 
         cent_of_m->x = normalize(cent_of_m->x, x_min, x_max);
         cent_of_m->y = normalize(cent_of_m->y, y_min, y_max);
@@ -177,10 +165,10 @@ double gravity_acceleration(double M, double r){
 
 }
 
-//struct to find the center of gravity
-struct two_d_vector* find_cog(double m1, struct two_d_vector pos1, double m2, struct two_d_vector pos2){
+// to find the center of gravity
+ two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
 
-    struct two_d_vector *barycenter = (struct two_d_vector*) malloc(sizeof(struct two_d_vector)); 
+     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
 
     barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
     barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
@@ -194,7 +182,7 @@ struct two_d_vector* find_cog(double m1, struct two_d_vector pos1, double m2, st
 
 // For simplicity, I'm implementing this in 2D for now, thus ignoring the Z axis
 // this returns the center of mass between the objects as a 2d vector
-struct two_d_vector* equation_of_motion(struct two_d_body *b1, struct two_d_body *b2){
+two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2){
     //double R; //this is the absolute gravitational accel between the two, and our result
 
     double m1, m2; //mass of the object
@@ -268,10 +256,10 @@ struct two_d_vector* equation_of_motion(struct two_d_body *b1, struct two_d_body
 
     // calculate positions
     //CHECK THIS EQUATION
-    double x_1_1 = dx_1_0 * delta_t + x1;
-    double y_1_1 = dy_1_0 * delta_t + y1;
-    double x_2_1 = dx_2_0 * delta_t + x2;
-    double y_2_1 = dy_2_0 * delta_t + y2;
+    double x_1_1 = (dx_1_1 * delta_t) + x1;
+    double y_1_1 = dy_1_1 * delta_t + y1;
+    double x_2_1 = dx_2_1 * delta_t + x2;
+    double y_2_1 = dy_2_1 * delta_t + y2;
 
 
     printf("m1 Position X = %lf\n", x_1_1);
@@ -290,7 +278,7 @@ struct two_d_vector* equation_of_motion(struct two_d_body *b1, struct two_d_body
     b2->velocity.x = dx_2_1;
     b2->velocity.y = dy_2_1;
 
-    struct two_d_vector *barycenter = find_cog(m1, b1->pos, m2, b2->pos);
+     two_d_vector *barycenter = find_cog(m1, b1->pos, m2, b2->pos);
 
     return barycenter;
 
@@ -298,7 +286,7 @@ struct two_d_vector* equation_of_motion(struct two_d_body *b1, struct two_d_body
 
 // equation of motion in reference frame attached to b1, where mass b1 >> b2
 // still using 2d equation
-struct two_d_vector* relative_equation_of_motion(struct two_d_body *b1, struct two_d_body *b2){
+ two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2){
 
     double x,y;
 
@@ -310,22 +298,23 @@ struct two_d_vector* relative_equation_of_motion(struct two_d_body *b1, struct t
 
     double mu = standard_gravitational_parameter(b1->mass);
 
-    double r = sqrt(((0.0 - x)*(0.0 - x)) + ((0.0 - y)*(0.0 - y)));
-    double mag_r = sqrt((x)*(x) + (y)*(y)); // since this is relative frame, the other set would be (0)
+    double r = sqrt(((0.0 - x)*(0.0 - x)) + ((0.0 - y)*(0.0 - y))); // since this is relative frame, the other set would be (0)
 
-    printf("\nrelative r = %lf",r);
+    double mag_r = sqrt((x)*(x) + (y)*(y)); 
+
+    printf("\n relative r = %lf",r);
 
     double ddx = (-(mu) * x) / (r * r * r);
     double ddy = (-(mu) * y) / (r * r * r);
 
     printf("\nRelative accel X: %lf and Y: %lf", ddx, ddy);
 
-        //this is in seconds
+    //this is in seconds
     double delta_t = 15.0F;
 
     // calculate the current velocities
-    double dx_1 = ddx * delta_t + dx_0;
-    double dy_1 = ddy* delta_t + dy_0;
+    double dx_1 = (ddx * delta_t) + dx_0;
+    double dy_1 = (ddy* delta_t) + dy_0;
 
     printf("Velocity X = %lf\n", dx_1);
     printf("Velocity Y = %lf\n", dy_1);
@@ -351,11 +340,20 @@ struct two_d_vector* relative_equation_of_motion(struct two_d_body *b1, struct t
         exit(0);
     }
 
-    struct two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
+     two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
 
     return barycenter;
 
 }
+
+ two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2){
+
+    runge_kutta(0, 55.0, b1->mass, b2);
+    two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
+
+    return barycenter;
+}
+
 
 // take the mass (kg) of an object and determine its scharzchild radius
 double scharzchild_radius(double mass){
@@ -364,9 +362,9 @@ double scharzchild_radius(double mass){
 
 int main(){
 
-    struct two_d_body *body1 = (struct two_d_body*) malloc(sizeof(struct two_d_body)*2);
+     two_d_body *body1 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
-    struct two_d_body *body2 = (struct two_d_body*) malloc(sizeof(struct two_d_body)*2);
+     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
     // gravity_equation();
 

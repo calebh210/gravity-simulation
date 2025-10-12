@@ -9,3 +9,6 @@ clean:
 
 sim: gravity.c
 	$(CC) $(CFLAGS) gravity.c src/glad.c $(CFLAGS) $(LIBS) -o build/sim
+
+check: 
+	valgrind ./build/sim
