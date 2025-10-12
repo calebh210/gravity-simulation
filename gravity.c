@@ -16,6 +16,25 @@ two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2);
 two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2);
 
 
+typedef struct point{
+    two_d_vector pos;
+    struct point *next;
+} point;
+
+typedef struct{
+    point *head;
+} points_list;
+
+void init_list(points_list *pL){
+    pL->head = NULL;
+}
+
+// add new point P to head of list
+void add_to_list(points_list *pL, point *p){
+    p->next = pL->head;
+    pL->head = p;    
+}
+
 // Function to draw a circle at (cx, cy) with radius 
 void drawCircle(float cx, float cy, float r, int num_segments) {
     glBegin(GL_TRIANGLE_FAN);
@@ -31,13 +50,32 @@ void drawCircle(float cx, float cy, float r, int num_segments) {
     glEnd();
 }
 
+
+//trying to draw an orbit path
+//use while to iterate over the points in the linked list, and draw them
+// this never clears the old points, and may cause memory issues
+void drawOrbits(points_list *orbit){
+    glBegin(GL_POINTS);
+
+        glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        point *iterator = orbit->head;  
+        while(iterator != NULL){
+            glVertex2f(iterator->pos.x, iterator->pos.y);
+            iterator = iterator->next;
+        }
+
+    glEnd();
+}
+
 int render( two_d_body* body1,  two_d_body* body2) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
     }
 
-    GLFWwindow* window = glfwCreateWindow(1280, 1000, "OpenGL Window", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 900, "OpenGL Window", NULL, NULL);
     if (!window) {
         fprintf(stderr, "Failed to create GLFW window\n");
         glfwTerminate();
@@ -67,8 +105,13 @@ int render( two_d_body* body1,  two_d_body* body2) {
     double x_max = 1.5 * AU;
 
     double y_min = -1.5 * AU;
-    double y_max = 1.5 * AU;
+    double y_max = 1.5 * AU;    
 
+
+    //list of points in the planet was at. used to draw orbits
+    points_list orbit1, orbit2;
+    init_list(&orbit1);
+    init_list(&orbit2);
 
     // Render loop
     // -1 is defined as the infinite run condition
@@ -106,6 +149,19 @@ int render( two_d_body* body1,  two_d_body* body2) {
         glColor3f(0.2f, 0.7f, 1.0f);  
         drawCircle(normalized_pos[2], normalized_pos[3], normalize(2 * body2->radius,x_min, x_max), 100);
         // drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
+
+        point *new_point = ( point * )malloc(sizeof(point));
+        two_d_vector curr_pos = {normalized_pos[2], normalized_pos[3]};
+        new_point->pos = curr_pos;
+        add_to_list(&orbit1, new_point);
+
+        point *new_point2 = ( point * )malloc(sizeof(point));
+        two_d_vector curr_pos2 = {normalized_pos[0], normalized_pos[1]};
+        new_point2->pos = curr_pos2;
+        add_to_list(&orbit2, new_point2);
+
+        drawOrbits(&orbit1);
+        drawOrbits(&orbit2);
 
         // Center of Mass
         glColor3f(0.2f, 1.0f, 0.3f);  
@@ -388,19 +444,19 @@ int main(){
     // gravity_equation();
 
     body1->mass = mass_sun;
-    body2->mass =  mass_earth;
+    body2->mass =  mass_sun;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
     body1->pos.x = 0;
-    body1->pos.y = 0;
+    body1->pos.y = -AU;
     body1->velocity.x = 0;
     body1->velocity.y = 0;
     body1->radius = 695700E3;
 
     //BLUE IN SIM
     body2->pos.x = AU;
-    body2->pos.y = 0;
+    body2->pos.y = -AU;
     body2->velocity.x = -2E3;
     body2->velocity.y = 20E3;
     body2->radius = 695700E3;
