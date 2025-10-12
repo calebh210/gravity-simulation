@@ -63,11 +63,11 @@ int render( two_d_body* body1,  two_d_body* body2) {
 
     int run = 0;
 
-    double x_min = -3 * 10000E3;
-    double x_max = 3 * 10000E3;
+    double x_min = -1.5 * AU;
+    double x_max = 1.5 * AU;
 
-    double y_min = -3 * 10000E3;
-    double y_max = 3 * 10000E3;
+    double y_min = -1.5 * AU;
+    double y_max = 1.5 * AU;
 
 
     // Render loop
@@ -99,11 +99,13 @@ int render( two_d_body* body1,  two_d_body* body2) {
 
         // Mass 1
         glColor3f(1.0f, 0.5f, 0.2f); 
-        drawCircle(normalized_pos[0], normalized_pos[1], normalize(1 * body1->radius,x_min, x_max), 100);
+        drawCircle(normalized_pos[0], normalized_pos[1], normalize(4 * body1->radius,x_min, x_max), 100);
+        // drawCircle(normalized_pos[0], normalized_pos[1], 0.03f, 100);
 
         // Mass 2
         glColor3f(0.2f, 0.7f, 1.0f);  
-        drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
+        drawCircle(normalized_pos[2], normalized_pos[3], normalize(2 * body2->radius,x_min, x_max), 100);
+        // drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
 
         // Center of Mass
         glColor3f(0.2f, 1.0f, 0.3f);  
@@ -348,7 +350,24 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2){
 
  two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2){
 
-    runge_kutta(0, 55.0, b1->mass, b2);
+    coint_runge_kutta(0, 10000.0, b1, b2);
+
+    printf("\n B1 Velocity = {%lf, %lf}", b1->velocity.x, b1->velocity.y);
+    printf("\n B1 Position = {%lf, %lf}", b1->pos.x, b1->pos.y);
+    printf("\n B2 Velocity = {%lf, %lf}", b2->velocity.x, b2->velocity.y);
+    printf("\n B2 Position = {%lf, %lf}", b2->pos.x, b2->pos.y);
+
+    double r = sqrt(((b1->pos.x - b2->pos.x)*(b1->pos.x - b2->pos.x)) + ((b1->pos.y - b2->pos.y)*(b1->pos.y - b2->pos.y)));
+
+    printf("\n Distance between B1 and B2 = %lf", r);
+
+
+    if (r <= b1->radius + b2->radius){
+        printf("\n B1 and B2 have collided. Ending simulation....");
+        exit(0);
+    }
+
+
     two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
 
     return barycenter;
@@ -368,8 +387,8 @@ int main(){
 
     // gravity_equation();
 
-    body1->mass = mass_earth;
-    body2->mass =  1000;
+    body1->mass = mass_sun;
+    body2->mass =  mass_earth;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
@@ -377,13 +396,14 @@ int main(){
     body1->pos.y = 0;
     body1->velocity.x = 0;
     body1->velocity.y = 0;
-    body1->radius = 6378E3;
+    body1->radius = 695700E3;
 
     //BLUE IN SIM
-    body2->pos.x = 10000E3;
-    body2->pos.y = 6000E3;
-    body2->velocity.x = 0;
-    body2->velocity.y = 7.0E3;
+    body2->pos.x = AU;
+    body2->pos.y = 0;
+    body2->velocity.x = -2E3;
+    body2->velocity.y = 20E3;
+    body2->radius = 695700E3;
 
 
     //double distance = (double)AU;
@@ -395,6 +415,7 @@ int main(){
 
     if(scharzchild_radius(body1->mass) > body1->radius){
         printf("Body is a black hole");
+        fflush(stdout);
         sleep(5);
     }
 
