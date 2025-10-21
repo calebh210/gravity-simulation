@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -g  
+CFLAGS = -Wall -g -O3
 LIBS = -lm -ldl -lglfw -lGL -Iinclude
 
 all: clean sim

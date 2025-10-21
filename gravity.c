@@ -15,6 +15,7 @@ double gravity_acceleration(double M, double r);
 two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
 two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
 two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t);
+two_d_vector* rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t );
 
 
 typedef struct point{
@@ -163,11 +164,11 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
             lastTime += 1.0;
         }
 
-        two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2, 10000.0f);
+        // two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2, 5000.0f);
         // two_d_vector *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
         // two_d_vector *cent_of_m = relative_equation_of_motion(body1, body2, 10000.0f);
+        two_d_vector *cent_of_m = rk4_relative_equation_of_motion(body1, body2, 5000.0f);
 
-        *cent_of_m = normalize_vec2(*cent_of_m, min, max);
 
         // Clear the screen
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -197,6 +198,7 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
         drawOrbits(orbits_list[1]);
 
         // Center of Mass
+        *cent_of_m = normalize_vec2(*cent_of_m, min, max);
         glColor3f(0.2f, 1.0f, 0.3f);  
         drawCircle(*cent_of_m, 0.005f, 100);
 
@@ -239,13 +241,6 @@ double gravity_equation(double m1, double m2, double r){
 }
 
 
-// Models u = G(m1+m2) 
-// Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
-double standard_gravitational_parameter(double m){
-    return (G * m);
-}
-
-
 // This function does g = GM/r^2
 double gravity_acceleration(double M, double r){
     double g; // feel like this should be a double for edge cases
@@ -258,20 +253,7 @@ double gravity_acceleration(double M, double r){
 
 }
 
-// to find the center of gravity
- two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
 
-     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
-
-    barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
-    barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
-
-    barycenter->x = barycenter->x / (m1 + m2);
-    barycenter->y = barycenter->y / (m1 + m2);
-
-    return barycenter;
-
-}
 
 // For simplicity, I'm implementing this in 2D for now, thus ignoring the Z axis
 // this returns the center of mass between the objects as a 2d vector
@@ -381,7 +363,7 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
 
 }
 
- two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
+two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
 
     coint_runge_kutta(0, delta_t, b1, b2);
 
@@ -393,6 +375,25 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
     }
 
 
+    two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
+
+    return barycenter;
+}
+
+// Put the COG on 0,0, and run calcualtions relative to that
+two_d_vector* rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
+
+    cog_ref_runge_kutta(0, delta_t, b1, b2);
+
+    double r = sqrt(((b1->pos.x - b2->pos.x)*(b1->pos.x - b2->pos.x)) + ((b1->pos.y - b2->pos.y)*(b1->pos.y - b2->pos.y)));
+
+    if (r <= b1->radius + b2->radius){
+        printf("\n B1 and B2 have collided. Ending simulation....");
+        exit(0);
+    }
+
+
+    //this is done just for visualization
     two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
 
     return barycenter;
@@ -415,17 +416,17 @@ int main(){
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
-    body1->pos.x = 0;
-    body1->pos.y = -AU;
-    body1->velocity.x = 0;
-    body1->velocity.y = 0;
+    body1->pos.x = -AU;
+    body1->pos.y = 0;
+    body1->velocity.x = 8E3;
+    body1->velocity.y = 5E2;
     body1->radius = 695700E3;
 
     //BLUE IN SIM
     body2->pos.x = AU;
     body2->pos.y = -AU;
     body2->velocity.x = -2E3;
-    body2->velocity.y = 20E3;
+    body2->velocity.y = 15E3;
     body2->radius = 695700E3;
 
 
