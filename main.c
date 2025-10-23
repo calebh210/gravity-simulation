@@ -5,14 +5,18 @@
 #include <unistd.h> 
 #include "structures.h"
 #include "gravity.h"
+#include "math_funcs.h"
 
 //Take the string argument for render_mode. Validate that it is correct
-void validate_rendering_mode(char *render_mode){
-    if(strcmp(render_mode, "inertial") == 0){
-        return;
-    } else if(strcmp(render_mode, "relative") == 0){
-        return;
-    } else {
+// Return an int code to make it easier to work with
+int validate_rendering_mode(char *REF_FRAME){
+    if(strcmp(REF_FRAME, "inertial") == 0){
+        return 100;
+    } else if(strcmp(REF_FRAME, "cog") == 0){
+        return 101;
+    } else if(strcmp(REF_FRAME, "relative") == 0){
+        return 102;
+    }else{
         printf("Render Mode not recognized. Exiting...\n");
         exit(1);
     }
@@ -20,7 +24,8 @@ void validate_rendering_mode(char *render_mode){
 
 int main(int argc, char **argv){
     
-    char *render_mode; //messy?
+    char *REF_FRAME = NULL; //messy?
+    int REF_FRAME_CODE = 0;
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
     while((opt = getopt(argc, argv, "dm:h")) != -1) 
@@ -32,9 +37,9 @@ int main(int argc, char **argv){
                 printf("Debugging Mode: Enabled\n");
                 break;
             case 'm': 
-                render_mode = optarg;
-                validate_rendering_mode(render_mode); //validate
-                printf("Rendering Mode: %s\n", render_mode); 
+                REF_FRAME = optarg;
+                REF_FRAME_CODE = validate_rendering_mode(REF_FRAME); //validate
+                printf("Rendering Mode: %s\n", REF_FRAME); 
                 break; 
             case 'h':
                 printf("Help Menu Placeholder!\n"); 
@@ -65,11 +70,11 @@ int main(int argc, char **argv){
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
     body1->mass = mass_sun;
-    body2->mass =  mass_sun;
+    body2->mass =  mass_earth;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
-    body1->pos.x = -AU;
+    body1->pos.x = 0;
     body1->pos.y = 0;
     body1->velocity.x = 8E3;
     body1->velocity.y = 5E2;
@@ -91,7 +96,7 @@ int main(int argc, char **argv){
 
     //printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
 
-    render(body1, body2, DEBUG);
+    render(body1, body2, REF_FRAME_CODE, DEBUG);
 
     // body2->pos.x = 8000E3;
     // body2->pos.y = 6000E3;

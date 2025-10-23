@@ -38,15 +38,15 @@ two_d_vector subtract_vec2s(two_d_vector vec1, two_d_vector vec2){
 }
 
 // to find the center of gravity
- two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
+ two_d_vector find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
 
-     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
+    two_d_vector barycenter;
 
-    barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
-    barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
+    barycenter.x = ((m1 * pos1.x) + (m2 * pos2.x));
+    barycenter.y = ((m1 * pos1.y) + (m2 * pos2.y));
 
-    barycenter->x = barycenter->x / (m1 + m2);
-    barycenter->y = barycenter->y / (m1 + m2);
+    barycenter.x = barycenter.x / (m1 + m2);
+    barycenter.y = barycenter.y / (m1 + m2);
 
     return barycenter;
 
@@ -98,20 +98,25 @@ two_d_vector f_v_rel_cog(double t, two_d_vector self_pos, two_d_vector other_pos
     two_d_vector x = self_pos;
     two_d_vector z = other_pos;
 
-    two_d_vector *y = find_cog(mass_self, x, mass_other, z);
+    two_d_vector com = find_cog(mass_self, x, mass_other, z);
 
     // TODO: Add some vector funcs here to clean this up
-    double r = sqrt(((y->x -x.x)*(y->x - x.x)) + ((y->y - x.y)*(y->y - x.y)));
+    double r = sqrt(((com.x -x.x)*(com.x - x.x)) + ((com.y - x.y)*(com.y - x.y)));
+
+    const double epsilon = 1e-5;
+    if (r < epsilon) {
+        printf("Cancelling acceleration on body, R < epsilon value\n");
+        return (two_d_vector){0.0, 0.0};
+    }
 
     // this does: -(u')/(r * r * r) * R
     // where u' = (m1/m1+m2)^3 * u
     double u = standard_gravitational_parameter(mass_self, mass_other);
-    double mm = (mass_self/(mass_self+mass_other));
-    double u_tick = (mm * mm * mm) * u;
-    
-    double temp = ((-1 * u_tick) / (r * r * r));
 
-    two_d_vector ddx = scale_vec2(self_pos, temp);
+    double temp = (1 / (r * r * r));
+
+    two_d_vector ddx = scale_vec2(x, temp); 
+    ddx = scale_vec2(x, (-1 * u));
     return ddx;
 }
 

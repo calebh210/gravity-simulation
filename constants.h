@@ -8,7 +8,7 @@ extern const double G;
 extern const long AU;
 
 // number of frames to run for. -1 will be infinite
-#define RUN_LIMIT -1
+#define RUN_LIMIT 5000
 
 #define PI 3.14159265358979323846f
 

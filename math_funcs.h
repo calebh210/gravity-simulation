@@ -4,7 +4,7 @@
 #include "structures.h"
 #include "constants.h"
 
-two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2);
+two_d_vector find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2);
 
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max);
