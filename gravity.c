@@ -1,31 +1,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "constants.h"
-// #include "graphics.c"
-#include "math_funcs.c"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <unistd.h>
-#include <stdbool.h>
+#include "math_funcs.h"
+#include "gravity.h"
 
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
 
-two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
-two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
-two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t);
-two_d_vector* rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t );
-
-
-typedef struct point{
-    two_d_vector pos;
-    struct point *next;
-} point;
-
-typedef struct{
-    point *head;
-} points_list;
 
 points_list* init_list(){
 
@@ -164,10 +147,10 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
             lastTime += 1.0;
         }
 
-        // two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2, 5000.0f);
+        two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2, 5000.0f);
         // two_d_vector *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
         // two_d_vector *cent_of_m = relative_equation_of_motion(body1, body2, 10000.0f);
-        two_d_vector *cent_of_m = rk4_relative_equation_of_motion(body1, body2, 5000.0f);
+        // two_d_vector *cent_of_m = rk4_relative_equation_of_motion(body1, body2, 5000.0f);
 
 
         // Clear the screen
@@ -403,55 +386,4 @@ two_d_vector* rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, f
 // take the mass (kg) of an object and determine its scharzchild radius
 double scharzchild_radius(double mass){
     return (2 * G * mass) / (double)(c * c);
-}
-
-int main(){
-
-     two_d_body *body1 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
-
-     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
-
-    body1->mass = mass_sun;
-    body2->mass =  mass_sun;
-
-    //E3 to convert from KM to M
-    // ORANGE IN SIM
-    body1->pos.x = -AU;
-    body1->pos.y = 0;
-    body1->velocity.x = 8E3;
-    body1->velocity.y = 5E2;
-    body1->radius = 695700E3;
-
-    //BLUE IN SIM
-    body2->pos.x = AU;
-    body2->pos.y = -AU;
-    body2->velocity.x = -2E3;
-    body2->velocity.y = 15E3;
-    body2->radius = 695700E3;
-
-
-    //double distance = (double)AU;
-    // gravity_acceleration(mass, distance);
-    
-    // gravity_equation(mass, mass, 43139309);
-
-
-
-    if(scharzchild_radius(body1->mass) > body1->radius){
-        printf("Body is a black hole");
-        fflush(stdout);
-        sleep(5);
-    }
-
-
-    //printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
-
-    bool DEBUG = true; // If TRUE, print debug statements once a second
-
-    render(body1, body2, DEBUG);
-
-    // body2->pos.x = 8000E3;
-    // body2->pos.y = 6000E3;
-    // relative_equation_of_motion(body1, body2);
-
 }
