@@ -1,8 +1,11 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 // Newton's gravitational constant
-double G = (6.6742E-11);
+extern const double G;
 
 //One Astronomical Unit
-long AU = 149597870700;
+extern const long AU;
 
 // number of frames to run for. -1 will be infinite
 #define RUN_LIMIT -1
@@ -10,8 +13,10 @@ long AU = 149597870700;
 #define PI 3.14159265358979323846f
 
 // speed of light in m/s
-const long c = 299792458;
+extern const long c;
 
 // Celestial Masses
-double mass_earth = 5.97219E24;
-double mass_sun = 1.9891E30;
+extern const double mass_earth;
+extern const double mass_sun;
+
+#endif

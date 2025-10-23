@@ -1,30 +1,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "constants.h"
-// #include "graphics.c"
-#include "math_funcs.c"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <unistd.h>
-#include <stdbool.h>
+#include "math_funcs.h"
+#include "gravity.h"
 
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
 
-two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
-two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t);
-two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t);
-
-
-typedef struct point{
-    two_d_vector pos;
-    struct point *next;
-} point;
-
-typedef struct{
-    point *head;
-} points_list;
 
 points_list* init_list(){
 
@@ -89,7 +73,7 @@ void drawOrbits(points_list *orbit){
     glEnd();
 }
 
-int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
+int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBUG) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
@@ -163,11 +147,24 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
             lastTime += 1.0;
         }
 
-        two_d_vector *cent_of_m = rk4_equation_of_motion(body1, body2, 10000.0f);
-        // two_d_vector *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
-        // two_d_vector *cent_of_m = relative_equation_of_motion(body1, body2, 10000.0f);
 
-        *cent_of_m = normalize_vec2(*cent_of_m, min, max);
+        if(REF_FRAME_CODE == 100){
+            rk4_equation_of_motion(body1, body2, 5000.0f);
+
+        }else if(REF_FRAME_CODE == 101){
+           rk4_relative_equation_of_motion(body1, body2, 15000.0f);
+
+        }else if(REF_FRAME_CODE == 102){
+            relative_equation_of_motion(body1, body2, 5000.0f);
+
+        }else{
+            exit(1); // should never be reached
+        }
+
+        two_d_vector cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
+
+
+        // two_d_vector *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
 
         // Clear the screen
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -197,8 +194,9 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
         drawOrbits(orbits_list[1]);
 
         // Center of Mass
+        cent_of_m = normalize_vec2(cent_of_m, min, max);
         glColor3f(0.2f, 1.0f, 0.3f);  
-        drawCircle(*cent_of_m, 0.005f, 100);
+        drawCircle(cent_of_m, 0.005f, 100);
 
 
         glfwSwapBuffers(window);
@@ -210,7 +208,6 @@ int render( two_d_body* body1,  two_d_body* body2, bool DEBUG) {
         //unreliable fps cap
         glfwWaitEventsTimeout(0.008);
         
-        free(cent_of_m);
     }
 
     free_list(orbits_list[0]);
@@ -239,13 +236,6 @@ double gravity_equation(double m1, double m2, double r){
 }
 
 
-// Models u = G(m1+m2) 
-// Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
-double standard_gravitational_parameter(double m){
-    return (G * m);
-}
-
-
 // This function does g = GM/r^2
 double gravity_acceleration(double M, double r){
     double g; // feel like this should be a double for edge cases
@@ -258,24 +248,11 @@ double gravity_acceleration(double M, double r){
 
 }
 
-// to find the center of gravity
- two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
 
-     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
-
-    barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
-    barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
-
-    barycenter->x = barycenter->x / (m1 + m2);
-    barycenter->y = barycenter->y / (m1 + m2);
-
-    return barycenter;
-
-}
 
 // For simplicity, I'm implementing this in 2D for now, thus ignoring the Z axis
 // this returns the center of mass between the objects as a 2d vector
-two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
+void equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
     //double R; //this is the absolute gravitational accel between the two, and our result
 
     double m1, m2; //mass of the object
@@ -351,15 +328,11 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
     b2->velocity.x = dx_2_1;
     b2->velocity.y = dy_2_1;
 
-    two_d_vector *barycenter = find_cog(m1, b1->pos, m2, b2->pos);
-
-    return barycenter;
-
 }
 
 // equation of motion in reference frame attached to b1, where mass b1 >> b2
 // still using 2d equation
- two_d_vector* relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
+void relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
 
     double x = b2->pos.x;
     double y = b2->pos.y;
@@ -369,19 +342,14 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
     double r = sqrt(((0.0 - x)*(0.0 - x)) + ((0.0 - y)*(0.0 - y))); // since this is relative frame, the other set would be (0)
 
     double alt = fabs(r) - b1->radius;
-    printf("\nAltitude is: %lf", alt);
     if(alt < 0.0){
         printf("\nObject crashed into planet!");
         exit(0);
     }
 
-     two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
-
-    return barycenter;
-
 }
 
- two_d_vector* rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
+void rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
 
     coint_runge_kutta(0, delta_t, b1, b2);
 
@@ -392,65 +360,23 @@ two_d_vector* equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
         exit(0);
     }
 
+}
 
-    two_d_vector *barycenter = find_cog(b1->mass, b1->pos, b2->mass, b2->pos);
+//Find the COG, and run calcualtions relative to that
+void rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
 
-    return barycenter;
+    cog_ref_runge_kutta(0, delta_t, b1, b2);
+
+    double r = sqrt(((b1->pos.x - b2->pos.x)*(b1->pos.x - b2->pos.x)) + ((b1->pos.y - b2->pos.y)*(b1->pos.y - b2->pos.y)));
+
+    if (r <= b1->radius + b2->radius){
+        printf("\n B1 and B2 have collided. Ending simulation....");
+        exit(0);
+    }
 }
 
 
 // take the mass (kg) of an object and determine its scharzchild radius
 double scharzchild_radius(double mass){
     return (2 * G * mass) / (double)(c * c);
-}
-
-int main(){
-
-     two_d_body *body1 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
-
-     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
-
-    body1->mass = mass_sun;
-    body2->mass =  mass_sun;
-
-    //E3 to convert from KM to M
-    // ORANGE IN SIM
-    body1->pos.x = 0;
-    body1->pos.y = -AU;
-    body1->velocity.x = 0;
-    body1->velocity.y = 0;
-    body1->radius = 695700E3;
-
-    //BLUE IN SIM
-    body2->pos.x = AU;
-    body2->pos.y = -AU;
-    body2->velocity.x = -2E3;
-    body2->velocity.y = 20E3;
-    body2->radius = 695700E3;
-
-
-    //double distance = (double)AU;
-    // gravity_acceleration(mass, distance);
-    
-    // gravity_equation(mass, mass, 43139309);
-
-
-
-    if(scharzchild_radius(body1->mass) > body1->radius){
-        printf("Body is a black hole");
-        fflush(stdout);
-        sleep(5);
-    }
-
-
-    //printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
-
-    bool DEBUG = true; // If TRUE, print debug statements once a second
-
-    render(body1, body2, DEBUG);
-
-    // body2->pos.x = 8000E3;
-    // body2->pos.y = 6000E3;
-    // relative_equation_of_motion(body1, body2);
-
 }

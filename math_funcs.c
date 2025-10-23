@@ -1,22 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
-
-typedef struct 
-{
-    double x; 
-    double y;
-} two_d_vector;
-
-typedef struct 
-{
-    double mass; // in kg
-    double radius; //in m
-    two_d_vector pos;
-    two_d_vector velocity;
-} two_d_body;
-
+#include "math_funcs.h"
 
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max) {
@@ -52,6 +37,27 @@ two_d_vector subtract_vec2s(two_d_vector vec1, two_d_vector vec2){
     return diff;
 }
 
+// to find the center of gravity
+ two_d_vector find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
+
+    two_d_vector barycenter;
+
+    barycenter.x = ((m1 * pos1.x) + (m2 * pos2.x));
+    barycenter.y = ((m1 * pos1.y) + (m2 * pos2.y));
+
+    barycenter.x = barycenter.x / (m1 + m2);
+    barycenter.y = barycenter.y / (m1 + m2);
+
+    return barycenter;
+
+}
+
+// Models u = G(m1+m2) 
+// Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
+double standard_gravitational_parameter(double m1, double m2){
+    return (G * (m1 + m2));
+}
+
 // RK4 Helper Function
 two_d_vector f_x(double t, two_d_vector x, two_d_vector v){
     return v;
@@ -82,6 +88,36 @@ two_d_vector f_v_inertial(double t,two_d_vector self_pos, two_d_vector other_pos
     two_d_vector ddx = scale_vec2(subtract_vec2s(y,x), G*mass_other); 
     ddx = scale_vec2(ddx, 1 / (r * r * r));
     return ddx;
+}
+
+
+// RK4 Helper Function
+// Models acceleration relative to the Center of Gravity
+two_d_vector f_v_rel_cog(double t, two_d_vector self_pos, two_d_vector other_pos, double mass_other, double mass_self){
+
+    two_d_vector r_vec = subtract_vec2s(other_pos, self_pos);
+
+    double r = sqrt(r_vec.x * r_vec.x + r_vec.y * r_vec.y);
+
+    const double epsilon = 1e-5;
+    if (r < epsilon) {
+        return (two_d_vector){0.0, 0.0};
+    }
+
+    // Gravitational parameter μ = G * (m1 + m2)
+    double u = standard_gravitational_parameter(mass_self, mass_other);
+
+    // Scale factor for acceleration relative to self mass fraction cubed:
+    double mm = mass_self / (mass_self + mass_other);
+    double u_tick = (mm * mm * mm) * u;
+
+    // Acceleration vector: -(u') / r^3 * r_vec
+    // NOTE this is supposed to be negative??? but was reversing my orbits so idk
+    double scale = (1) * (u_tick) / (r * r * r);
+
+    two_d_vector acceleration = scale_vec2(r_vec, scale);
+
+    return acceleration;
 }
 
 // Fourth-Order Runge-Kutta algorithm
@@ -180,5 +216,67 @@ void runge_kutta(double t, double h, double m, two_d_body *b){
     b->pos = add_vecs(x, scale_vec2(add_vecs4(k1_x, scale_vec2(k2_x, 2), scale_vec2(k3_x, 2), k4_x), h / 6.0));
 
     b->velocity = add_vecs(v, scale_vec2(add_vecs4(k1_v, scale_vec2(k2_v, 2), scale_vec2(k3_v, 2), k4_v), h / 6.0));
+
+}
+
+
+void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2){
+
+    // pos, vel, and mass of b1
+    two_d_vector x1_init = body1->pos;
+    two_d_vector v1_init = body1->velocity; 
+    double m1 =  body1->mass;
+
+    // pos, vel, and mass of b2
+    two_d_vector x2_init = body2->pos;
+    two_d_vector v2_init = body2->velocity; 
+    double m2 =  body2->mass;
+
+
+    //frame conversion
+    two_d_vector v_com = {
+    (m1 * v1_init.x + m2 * v2_init.x) / (m1 + m2),
+    (m1 * v1_init.y + m2 * v2_init.y) / (m1 + m2)
+    };
+    two_d_vector com = find_cog(m1, x1_init, m2, x2_init);
+    two_d_vector x1 = { x1_init.x - com.x, x1_init.y - com.y };
+    two_d_vector x2 = { x2_init.x - com.x, x2_init.y - com.y };
+
+    two_d_vector v1 = { v1_init.x - v_com.x, v1_init.y - v_com.y };
+    two_d_vector v2 = { v2_init.x - v_com.x, v2_init.y - v_com.y };
+
+    //rk4 steps
+
+    //k1 step
+    two_d_vector k1_x1 = f_x(t,x1,v1); // explicit euler. equal to k1 = h * f_x
+    two_d_vector k1_v1 = f_v_rel_cog(t,x1,x2,m2,m1);
+    two_d_vector k1_x2 = f_x(t,x2,v2); 
+    two_d_vector k1_v2 = f_v_rel_cog(t,x2,x1,m1,m2);
+
+    //k2
+    two_d_vector k2_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(v1, scale_vec2(k1_v1, h * 0.5))); //multiply by 0.5 is faster than /2
+    two_d_vector k2_v1 = f_v_rel_cog(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(x2, scale_vec2(k1_x2, h * 0.5)),m2,m1);
+    two_d_vector k2_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(v2, scale_vec2(k1_v2, h * 0.5))); //multiply by 0.5 is faster than /2
+    two_d_vector k2_v2 = f_v_rel_cog(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(x1, scale_vec2(k1_x1, h * 0.5)),m1,m2);
+
+
+    two_d_vector k3_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(v1, scale_vec2(k2_v1, h * 0.5)));
+    two_d_vector k3_v1 = f_v_rel_cog(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(x2, scale_vec2(k2_x2, h * 0.5)),m2,m1);
+    two_d_vector k3_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(v2, scale_vec2(k2_v2, h * 0.5)));
+    two_d_vector k3_v2 = f_v_rel_cog(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(x1, scale_vec2(k2_x1, h * 0.5)),m1,m2);
+
+
+    two_d_vector k4_x1 = f_x(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(v1, scale_vec2(k3_v1, h))); // implicit euler
+    two_d_vector k4_v1 = f_v_rel_cog(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(x2, scale_vec2(k3_x2, h)),m2,m1);
+    two_d_vector k4_x2 = f_x(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(v2, scale_vec2(k3_v2, h))); 
+    two_d_vector k4_v2 = f_v_rel_cog(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(x1, scale_vec2(k3_x1, h)),m1,m2);
+
+
+
+    body1->pos = add_vecs(x1, scale_vec2(add_vecs4(k1_x1, scale_vec2(k2_x1, 2), scale_vec2(k3_x1, 2), k4_x1), h / 6.0));
+    body1->velocity = add_vecs(v1, scale_vec2(add_vecs4(k1_v1, scale_vec2(k2_v1, 2), scale_vec2(k3_v1, 2), k4_v1), h / 6.0));
+
+    body2->pos = add_vecs(x2, scale_vec2(add_vecs4(k1_x2, scale_vec2(k2_x2, 2), scale_vec2(k3_x2, 2), k4_x2), h / 6.0));
+    body2->velocity = add_vecs(v2, scale_vec2(add_vecs4(k1_v2, scale_vec2(k2_v2, 2), scale_vec2(k3_v2, 2), k4_v2), h / 6.0));
 
 }
