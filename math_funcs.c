@@ -1,42 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
-
-typedef struct 
-{
-    double x; 
-    double y;
-} two_d_vector;
-
-typedef struct 
-{
-    double mass; // in kg
-    double radius; //in m
-    two_d_vector pos;
-    two_d_vector velocity;
-} two_d_body;
-
-// Models u = G(m1+m2) 
-// Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
-double standard_gravitational_parameter(double m1, double m2){
-    return (G * (m1 + m2));
-}
-
-// to find the center of gravity
- two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
-
-     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
-
-    barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
-    barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
-
-    barycenter->x = barycenter->x / (m1 + m2);
-    barycenter->y = barycenter->y / (m1 + m2);
-
-    return barycenter;
-
-}
+#include "math_funcs.h"
 
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max) {
@@ -70,6 +35,27 @@ two_d_vector add_vecs4(two_d_vector vec1, two_d_vector vec2, two_d_vector vec3, 
 two_d_vector subtract_vec2s(two_d_vector vec1, two_d_vector vec2){
     two_d_vector diff = { vec1.x - vec2.x, vec1.y - vec2.y};
     return diff;
+}
+
+// to find the center of gravity
+ two_d_vector* find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
+
+     two_d_vector *barycenter = ( two_d_vector*) malloc(sizeof( two_d_vector)); 
+
+    barycenter->x = ((m1 * pos1.x) + (m2 * pos2.x));
+    barycenter->y = ((m1 * pos1.y) + (m2 * pos2.y));
+
+    barycenter->x = barycenter->x / (m1 + m2);
+    barycenter->y = barycenter->y / (m1 + m2);
+
+    return barycenter;
+
+}
+
+// Models u = G(m1+m2) 
+// Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
+double standard_gravitational_parameter(double m1, double m2){
+    return (G * (m1 + m2));
 }
 
 // RK4 Helper Function
