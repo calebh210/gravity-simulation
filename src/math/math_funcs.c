@@ -2,45 +2,17 @@
 #include <stdio.h>
 #include <math.h>
 #include "math/math_funcs.h"
+#include "math/vector/vector2.h"
 
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max) {
     return (float)(2.0 * (value - min) / (max - min) - 1.0);
 }
 
-// normalize a two_d_vectpr to something that opengl can render
-two_d_vector normalize_vec2(two_d_vector vec, double min, double max) {
-    two_d_vector n_vec = {(2.0 * (vec.x - min) / (max - min) - 1.0), (2.0 * (vec.y - min) / (max - min) - 1.0)};
-    return n_vec;
-}
-
-// Scale up a vector vec by s
-two_d_vector scale_vec2(two_d_vector vec, double s){
-    two_d_vector scaled = {vec.x * s, vec.y * s};
-    return scaled;
-}
-
-// Add two vectors and return their sum
-two_d_vector add_vecs(two_d_vector vec1, two_d_vector vec2){
-    two_d_vector sum = {vec1.x + vec2.x, vec1.y + vec2.y};
-    return sum;
-}
-
-//Add 4 vecs (used for RK4)
-two_d_vector add_vecs4(two_d_vector vec1, two_d_vector vec2, two_d_vector vec3, two_d_vector vec4){
-    return add_vecs(add_vecs(vec1, vec2), add_vecs(vec3, vec4));
-}
-
-//subtract two vec2s from eachother
-two_d_vector subtract_vec2s(two_d_vector vec1, two_d_vector vec2){
-    two_d_vector diff = { vec1.x - vec2.x, vec1.y - vec2.y};
-    return diff;
-}
-
 // to find the center of gravity
- two_d_vector find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2){
+ vector2 find_cog(double m1,  vector2 pos1, double m2,  vector2 pos2){
 
-    two_d_vector barycenter;
+    vector2 barycenter;
 
     barycenter.x = ((m1 * pos1.x) + (m2 * pos2.x));
     barycenter.y = ((m1 * pos1.y) + (m2 * pos2.y));
@@ -59,33 +31,33 @@ double standard_gravitational_parameter(double m1, double m2){
 }
 
 // RK4 Helper Function
-two_d_vector f_x(double t, two_d_vector x, two_d_vector v){
+vector2 f_x(double t, vector2 x, vector2 v){
     return v;
 }
 
 // RK4 Helper Function
 // This models acceleration in a two body system, relative frame
-two_d_vector f_v(double t ,two_d_vector x, two_d_vector v, double m){
+vector2 f_v(double t ,vector2 x, vector2 v, double m){
 
     double r = sqrt(((0.0 -x.x)*(0.0 - x.x)) + ((0.0 - x.y)*(0.0 - x.y)));
 
-    two_d_vector ddx = scale_vec2(x, -G*m); 
+    vector2 ddx = scale_vec2(x, -G*m); 
     ddx = scale_vec2(ddx, 1 / (r * r * r));
     return ddx;
 }
 
 // RK4 Helper Function
 // This models acceleration in a two body system, intertial frame
-two_d_vector f_v_inertial(double t,two_d_vector self_pos, two_d_vector other_pos, double mass_other){
+vector2 f_v_inertial(double t,vector2 self_pos, vector2 other_pos, double mass_other){
 
     // these are two position vectors
-    two_d_vector x = self_pos;
-    two_d_vector y = other_pos;
+    vector2 x = self_pos;
+    vector2 y = other_pos;
     // TODO: Add some vector funcs here to clean this up
     double r = sqrt(((y.x -x.x)*(y.x - x.x)) + ((y.y - x.y)*(y.y - x.y)));
 
     // this does: G * m1 * (x1 - x2)/(r * r * r)
-    two_d_vector ddx = scale_vec2(subtract_vec2s(y,x), G*mass_other); 
+    vector2 ddx = scale_vec2(subtract_vec2s(y,x), G*mass_other); 
     ddx = scale_vec2(ddx, 1 / (r * r * r));
     return ddx;
 }
@@ -93,15 +65,15 @@ two_d_vector f_v_inertial(double t,two_d_vector self_pos, two_d_vector other_pos
 
 // RK4 Helper Function
 // Models acceleration relative to the Center of Gravity
-two_d_vector f_v_rel_cog(double t, two_d_vector self_pos, two_d_vector other_pos, double mass_other, double mass_self){
+vector2 f_v_rel_cog(double t, vector2 self_pos, vector2 other_pos, double mass_other, double mass_self){
 
-    two_d_vector r_vec = subtract_vec2s(other_pos, self_pos);
+    vector2 r_vec = subtract_vec2s(other_pos, self_pos);
 
     double r = sqrt(r_vec.x * r_vec.x + r_vec.y * r_vec.y);
 
     const double epsilon = 1e-5;
     if (r < epsilon) {
-        return (two_d_vector){0.0, 0.0};
+        return (vector2){0.0, 0.0};
     }
 
     // Gravitational parameter μ = G * (m1 + m2)
@@ -115,7 +87,7 @@ two_d_vector f_v_rel_cog(double t, two_d_vector self_pos, two_d_vector other_pos
     // NOTE this is supposed to be negative??? but was reversing my orbits so idk
     double scale = (1) * (u_tick) / (r * r * r);
 
-    two_d_vector acceleration = scale_vec2(r_vec, scale);
+    vector2 acceleration = scale_vec2(r_vec, scale);
 
     return acceleration;
 }
@@ -132,48 +104,48 @@ two_d_vector f_v_rel_cog(double t, two_d_vector self_pos, two_d_vector other_pos
 void coint_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2){
 
     // pos, vel, and mass of b1
-    two_d_vector x1 = body1->pos;
-    two_d_vector v1 = body1->velocity; 
+    vector2 x1 = body1->pos;
+    vector2 v1 = body1->velocity; 
     double m1 =  body1->mass;
 
     // pos, vel, and mass of b2
-    two_d_vector x2 = body2->pos;
-    two_d_vector v2 = body2->velocity; 
+    vector2 x2 = body2->pos;
+    vector2 v2 = body2->velocity; 
     double m2 =  body2->mass;
 
     //rk4 steps
 
     //k1 step
-    two_d_vector k1_x1 = f_x(t,x1,v1); // explicit euler. equal to k1 = h * f_x
-    two_d_vector k1_v1 = f_v_inertial(t,x1,x2,m2);
-    two_d_vector k1_x2 = f_x(t,x2,v2); 
-    two_d_vector k1_v2 = f_v_inertial(t,x2,x1,m1);
+    vector2 k1_x1 = f_x(t,x1,v1); // explicit euler. equal to k1 = h * f_x
+    vector2 k1_v1 = f_v_inertial(t,x1,x2,m2);
+    vector2 k1_x2 = f_x(t,x2,v2); 
+    vector2 k1_v2 = f_v_inertial(t,x2,x1,m1);
 
     //k2
-    two_d_vector k2_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(v1, scale_vec2(k1_v1, h * 0.5))); //multiply by 0.5 is faster than /2
-    two_d_vector k2_v1 = f_v_inertial(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(x2, scale_vec2(k1_x2, h * 0.5)),m2);
-    two_d_vector k2_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(v2, scale_vec2(k1_v2, h * 0.5))); //multiply by 0.5 is faster than /2
-    two_d_vector k2_v2 = f_v_inertial(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(x1, scale_vec2(k1_x1, h * 0.5)),m1);
+    vector2 k2_x1 = f_x(t + h * 0.5, add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)), add_vec2s(v1, scale_vec2(k1_v1, h * 0.5))); //multiply by 0.5 is faster than /2
+    vector2 k2_v1 = f_v_inertial(t + h * 0.5, add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)), add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)),m2);
+    vector2 k2_x2 = f_x(t + h * 0.5, add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)), add_vec2s(v2, scale_vec2(k1_v2, h * 0.5))); //multiply by 0.5 is faster than /2
+    vector2 k2_v2 = f_v_inertial(t + h * 0.5, add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)), add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)),m1);
 
 
-    two_d_vector k3_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(v1, scale_vec2(k2_v1, h * 0.5)));
-    two_d_vector k3_v1 = f_v_inertial(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(x2, scale_vec2(k2_x2, h * 0.5)),m2);
-    two_d_vector k3_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(v2, scale_vec2(k2_v2, h * 0.5)));
-    two_d_vector k3_v2 = f_v_inertial(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(x1, scale_vec2(k2_x1, h * 0.5)),m1);
+    vector2 k3_x1 = f_x(t + h * 0.5, add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)), add_vec2s(v1, scale_vec2(k2_v1, h * 0.5)));
+    vector2 k3_v1 = f_v_inertial(t + h * 0.5, add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)), add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)),m2);
+    vector2 k3_x2 = f_x(t + h * 0.5, add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)), add_vec2s(v2, scale_vec2(k2_v2, h * 0.5)));
+    vector2 k3_v2 = f_v_inertial(t + h * 0.5, add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)), add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)),m1);
 
 
-    two_d_vector k4_x1 = f_x(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(v1, scale_vec2(k3_v1, h))); // implicit euler
-    two_d_vector k4_v1 = f_v_inertial(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(x2, scale_vec2(k3_x2, h)),m2);
-    two_d_vector k4_x2 = f_x(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(v2, scale_vec2(k3_v2, h))); 
-    two_d_vector k4_v2 = f_v_inertial(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(x1, scale_vec2(k3_x1, h)),m1);
+    vector2 k4_x1 = f_x(t + h, add_vec2s(x1, scale_vec2(k3_x1, h)), add_vec2s(v1, scale_vec2(k3_v1, h))); // implicit euler
+    vector2 k4_v1 = f_v_inertial(t + h, add_vec2s(x1, scale_vec2(k3_x1, h)), add_vec2s(x2, scale_vec2(k3_x2, h)),m2);
+    vector2 k4_x2 = f_x(t + h, add_vec2s(x2, scale_vec2(k3_x2, h)), add_vec2s(v2, scale_vec2(k3_v2, h))); 
+    vector2 k4_v2 = f_v_inertial(t + h, add_vec2s(x2, scale_vec2(k3_x2, h)), add_vec2s(x1, scale_vec2(k3_x1, h)),m1);
 
 
 
-    body1->pos = add_vecs(x1, scale_vec2(add_vecs4(k1_x1, scale_vec2(k2_x1, 2), scale_vec2(k3_x1, 2), k4_x1), h / 6.0));
-    body1->velocity = add_vecs(v1, scale_vec2(add_vecs4(k1_v1, scale_vec2(k2_v1, 2), scale_vec2(k3_v1, 2), k4_v1), h / 6.0));
+    body1->pos = add_vec2s(x1, scale_vec2(add_4vec2s(k1_x1, scale_vec2(k2_x1, 2), scale_vec2(k3_x1, 2), k4_x1), h / 6.0));
+    body1->velocity = add_vec2s(v1, scale_vec2(add_4vec2s(k1_v1, scale_vec2(k2_v1, 2), scale_vec2(k3_v1, 2), k4_v1), h / 6.0));
 
-    body2->pos = add_vecs(x2, scale_vec2(add_vecs4(k1_x2, scale_vec2(k2_x2, 2), scale_vec2(k3_x2, 2), k4_x2), h / 6.0));
-    body2->velocity = add_vecs(v2, scale_vec2(add_vecs4(k1_v2, scale_vec2(k2_v2, 2), scale_vec2(k3_v2, 2), k4_v2), h / 6.0));
+    body2->pos = add_vec2s(x2, scale_vec2(add_4vec2s(k1_x2, scale_vec2(k2_x2, 2), scale_vec2(k3_x2, 2), k4_x2), h / 6.0));
+    body2->velocity = add_vec2s(v2, scale_vec2(add_4vec2s(k1_v2, scale_vec2(k2_v2, 2), scale_vec2(k3_v2, 2), k4_v2), h / 6.0));
 
 }
 
@@ -189,33 +161,33 @@ void coint_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2)
 
 void runge_kutta(double t, double h, double m, two_d_body *b){
 
-    two_d_vector x = b->pos;
-    two_d_vector v = b->velocity; 
+    vector2 x = b->pos;
+    vector2 v = b->velocity; 
 
 
     //define steps
-    two_d_vector k1_x;
-    two_d_vector k1_v;
-    two_d_vector k2_x;
-    two_d_vector k2_v;
-    two_d_vector k3_x;
-    two_d_vector k3_v;
-    two_d_vector k4_x;
-    two_d_vector k4_v;
+    vector2 k1_x;
+    vector2 k1_v;
+    vector2 k2_x;
+    vector2 k2_v;
+    vector2 k3_x;
+    vector2 k3_v;
+    vector2 k4_x;
+    vector2 k4_v;
 
     k1_x = f_x(t,x,v); // explicit euler. equal to k1 = h * f_x
     k1_v = f_v(t,x,v,m);
-    k2_x = f_x(t + h * 0.5, add_vecs(x, scale_vec2(k1_x, h * 0.5)), add_vecs(v, scale_vec2(k1_v, h * 0.5))); //multiply by 0.5 is faster than /2
-    k2_v = f_v(t + h * 0.5, add_vecs(x, scale_vec2(k1_x, h * 0.5)), add_vecs(v, scale_vec2(k1_v, h * 0.5)),m);
-    k3_x = f_x(t + h * 0.5, add_vecs(x, scale_vec2(k2_x, h * 0.5)), add_vecs(v, scale_vec2(k2_v, h * 0.5)));
-    k3_v = f_v(t + h * 0.5, add_vecs(x, scale_vec2(k2_x, h * 0.5)), add_vecs(v, scale_vec2(k2_v, h * 0.5)),m);
+    k2_x = f_x(t + h * 0.5, add_vec2s(x, scale_vec2(k1_x, h * 0.5)), add_vec2s(v, scale_vec2(k1_v, h * 0.5))); //multiply by 0.5 is faster than /2
+    k2_v = f_v(t + h * 0.5, add_vec2s(x, scale_vec2(k1_x, h * 0.5)), add_vec2s(v, scale_vec2(k1_v, h * 0.5)),m);
+    k3_x = f_x(t + h * 0.5, add_vec2s(x, scale_vec2(k2_x, h * 0.5)), add_vec2s(v, scale_vec2(k2_v, h * 0.5)));
+    k3_v = f_v(t + h * 0.5, add_vec2s(x, scale_vec2(k2_x, h * 0.5)), add_vec2s(v, scale_vec2(k2_v, h * 0.5)),m);
 
-    k4_x = f_x(t + h, add_vecs(x, scale_vec2(k3_x, h)), add_vecs(v, scale_vec2(k3_v, h))); // implicit euler
-    k4_v = f_v(t + h, add_vecs(x, scale_vec2(k3_x, h)), add_vecs(v, scale_vec2(k3_v, h)),m);
+    k4_x = f_x(t + h, add_vec2s(x, scale_vec2(k3_x, h)), add_vec2s(v, scale_vec2(k3_v, h))); // implicit euler
+    k4_v = f_v(t + h, add_vec2s(x, scale_vec2(k3_x, h)), add_vec2s(v, scale_vec2(k3_v, h)),m);
 
-    b->pos = add_vecs(x, scale_vec2(add_vecs4(k1_x, scale_vec2(k2_x, 2), scale_vec2(k3_x, 2), k4_x), h / 6.0));
+    b->pos = add_vec2s(x, scale_vec2(add_4vec2s(k1_x, scale_vec2(k2_x, 2), scale_vec2(k3_x, 2), k4_x), h / 6.0));
 
-    b->velocity = add_vecs(v, scale_vec2(add_vecs4(k1_v, scale_vec2(k2_v, 2), scale_vec2(k3_v, 2), k4_v), h / 6.0));
+    b->velocity = add_vec2s(v, scale_vec2(add_4vec2s(k1_v, scale_vec2(k2_v, 2), scale_vec2(k3_v, 2), k4_v), h / 6.0));
 
 }
 
@@ -223,60 +195,60 @@ void runge_kutta(double t, double h, double m, two_d_body *b){
 void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2){
 
     // pos, vel, and mass of b1
-    two_d_vector x1_init = body1->pos;
-    two_d_vector v1_init = body1->velocity; 
+    vector2 x1_init = body1->pos;
+    vector2 v1_init = body1->velocity; 
     double m1 =  body1->mass;
 
     // pos, vel, and mass of b2
-    two_d_vector x2_init = body2->pos;
-    two_d_vector v2_init = body2->velocity; 
+    vector2 x2_init = body2->pos;
+    vector2 v2_init = body2->velocity; 
     double m2 =  body2->mass;
 
 
     //frame conversion
-    two_d_vector v_com = {
+    vector2 v_com = {
     (m1 * v1_init.x + m2 * v2_init.x) / (m1 + m2),
     (m1 * v1_init.y + m2 * v2_init.y) / (m1 + m2)
     };
-    two_d_vector com = find_cog(m1, x1_init, m2, x2_init);
-    two_d_vector x1 = { x1_init.x - com.x, x1_init.y - com.y };
-    two_d_vector x2 = { x2_init.x - com.x, x2_init.y - com.y };
+    vector2 com = find_cog(m1, x1_init, m2, x2_init);
+    vector2 x1 = { x1_init.x - com.x, x1_init.y - com.y };
+    vector2 x2 = { x2_init.x - com.x, x2_init.y - com.y };
 
-    two_d_vector v1 = { v1_init.x - v_com.x, v1_init.y - v_com.y };
-    two_d_vector v2 = { v2_init.x - v_com.x, v2_init.y - v_com.y };
+    vector2 v1 = { v1_init.x - v_com.x, v1_init.y - v_com.y };
+    vector2 v2 = { v2_init.x - v_com.x, v2_init.y - v_com.y };
 
     //rk4 steps
 
     //k1 step
-    two_d_vector k1_x1 = f_x(t,x1,v1); // explicit euler. equal to k1 = h * f_x
-    two_d_vector k1_v1 = f_v_rel_cog(t,x1,x2,m2,m1);
-    two_d_vector k1_x2 = f_x(t,x2,v2); 
-    two_d_vector k1_v2 = f_v_rel_cog(t,x2,x1,m1,m2);
+    vector2 k1_x1 = f_x(t,x1,v1); // explicit euler. equal to k1 = h * f_x
+    vector2 k1_v1 = f_v_rel_cog(t,x1,x2,m2,m1);
+    vector2 k1_x2 = f_x(t,x2,v2); 
+    vector2 k1_v2 = f_v_rel_cog(t,x2,x1,m1,m2);
 
     //k2
-    two_d_vector k2_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(v1, scale_vec2(k1_v1, h * 0.5))); //multiply by 0.5 is faster than /2
-    two_d_vector k2_v1 = f_v_rel_cog(t + h * 0.5, add_vecs(x1, scale_vec2(k1_x1, h * 0.5)), add_vecs(x2, scale_vec2(k1_x2, h * 0.5)),m2,m1);
-    two_d_vector k2_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(v2, scale_vec2(k1_v2, h * 0.5))); //multiply by 0.5 is faster than /2
-    two_d_vector k2_v2 = f_v_rel_cog(t + h * 0.5, add_vecs(x2, scale_vec2(k1_x2, h * 0.5)), add_vecs(x1, scale_vec2(k1_x1, h * 0.5)),m1,m2);
+    vector2 k2_x1 = f_x(t + h * 0.5, add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)), add_vec2s(v1, scale_vec2(k1_v1, h * 0.5))); //multiply by 0.5 is faster than /2
+    vector2 k2_v1 = f_v_rel_cog(t + h * 0.5, add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)), add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)),m2,m1);
+    vector2 k2_x2 = f_x(t + h * 0.5, add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)), add_vec2s(v2, scale_vec2(k1_v2, h * 0.5))); //multiply by 0.5 is faster than /2
+    vector2 k2_v2 = f_v_rel_cog(t + h * 0.5, add_vec2s(x2, scale_vec2(k1_x2, h * 0.5)), add_vec2s(x1, scale_vec2(k1_x1, h * 0.5)),m1,m2);
 
 
-    two_d_vector k3_x1 = f_x(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(v1, scale_vec2(k2_v1, h * 0.5)));
-    two_d_vector k3_v1 = f_v_rel_cog(t + h * 0.5, add_vecs(x1, scale_vec2(k2_x1, h * 0.5)), add_vecs(x2, scale_vec2(k2_x2, h * 0.5)),m2,m1);
-    two_d_vector k3_x2 = f_x(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(v2, scale_vec2(k2_v2, h * 0.5)));
-    two_d_vector k3_v2 = f_v_rel_cog(t + h * 0.5, add_vecs(x2, scale_vec2(k2_x2, h * 0.5)), add_vecs(x1, scale_vec2(k2_x1, h * 0.5)),m1,m2);
+    vector2 k3_x1 = f_x(t + h * 0.5, add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)), add_vec2s(v1, scale_vec2(k2_v1, h * 0.5)));
+    vector2 k3_v1 = f_v_rel_cog(t + h * 0.5, add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)), add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)),m2,m1);
+    vector2 k3_x2 = f_x(t + h * 0.5, add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)), add_vec2s(v2, scale_vec2(k2_v2, h * 0.5)));
+    vector2 k3_v2 = f_v_rel_cog(t + h * 0.5, add_vec2s(x2, scale_vec2(k2_x2, h * 0.5)), add_vec2s(x1, scale_vec2(k2_x1, h * 0.5)),m1,m2);
 
 
-    two_d_vector k4_x1 = f_x(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(v1, scale_vec2(k3_v1, h))); // implicit euler
-    two_d_vector k4_v1 = f_v_rel_cog(t + h, add_vecs(x1, scale_vec2(k3_x1, h)), add_vecs(x2, scale_vec2(k3_x2, h)),m2,m1);
-    two_d_vector k4_x2 = f_x(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(v2, scale_vec2(k3_v2, h))); 
-    two_d_vector k4_v2 = f_v_rel_cog(t + h, add_vecs(x2, scale_vec2(k3_x2, h)), add_vecs(x1, scale_vec2(k3_x1, h)),m1,m2);
+    vector2 k4_x1 = f_x(t + h, add_vec2s(x1, scale_vec2(k3_x1, h)), add_vec2s(v1, scale_vec2(k3_v1, h))); // implicit euler
+    vector2 k4_v1 = f_v_rel_cog(t + h, add_vec2s(x1, scale_vec2(k3_x1, h)), add_vec2s(x2, scale_vec2(k3_x2, h)),m2,m1);
+    vector2 k4_x2 = f_x(t + h, add_vec2s(x2, scale_vec2(k3_x2, h)), add_vec2s(v2, scale_vec2(k3_v2, h))); 
+    vector2 k4_v2 = f_v_rel_cog(t + h, add_vec2s(x2, scale_vec2(k3_x2, h)), add_vec2s(x1, scale_vec2(k3_x1, h)),m1,m2);
 
 
 
-    body1->pos = add_vecs(x1, scale_vec2(add_vecs4(k1_x1, scale_vec2(k2_x1, 2), scale_vec2(k3_x1, 2), k4_x1), h / 6.0));
-    body1->velocity = add_vecs(v1, scale_vec2(add_vecs4(k1_v1, scale_vec2(k2_v1, 2), scale_vec2(k3_v1, 2), k4_v1), h / 6.0));
+    body1->pos = add_vec2s(x1, scale_vec2(add_4vec2s(k1_x1, scale_vec2(k2_x1, 2), scale_vec2(k3_x1, 2), k4_x1), h / 6.0));
+    body1->velocity = add_vec2s(v1, scale_vec2(add_4vec2s(k1_v1, scale_vec2(k2_v1, 2), scale_vec2(k3_v1, 2), k4_v1), h / 6.0));
 
-    body2->pos = add_vecs(x2, scale_vec2(add_vecs4(k1_x2, scale_vec2(k2_x2, 2), scale_vec2(k3_x2, 2), k4_x2), h / 6.0));
-    body2->velocity = add_vecs(v2, scale_vec2(add_vecs4(k1_v2, scale_vec2(k2_v2, 2), scale_vec2(k3_v2, 2), k4_v2), h / 6.0));
+    body2->pos = add_vec2s(x2, scale_vec2(add_4vec2s(k1_x2, scale_vec2(k2_x2, 2), scale_vec2(k3_x2, 2), k4_x2), h / 6.0));
+    body2->velocity = add_vec2s(v2, scale_vec2(add_4vec2s(k1_v2, scale_vec2(k2_v2, 2), scale_vec2(k3_v2, 2), k4_v2), h / 6.0));
 
 }

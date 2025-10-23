@@ -4,7 +4,7 @@
 #include "utils/structures.h"
 
 typedef struct point{
-    two_d_vector pos;
+    vector2 pos;
     struct point *next;
 } point;
 

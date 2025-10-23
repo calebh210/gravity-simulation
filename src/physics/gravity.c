@@ -10,7 +10,7 @@ double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
 
 // Function to draw a circle at (cx, cy) with radius 
-void drawCircle(two_d_vector c, float r, int num_segments) {
+void drawCircle(vector2 c, float r, int num_segments) {
     float cx = c.x;
     float cy = c.y;
     glBegin(GL_TRIANGLE_FAN);
@@ -45,7 +45,7 @@ void drawOrbits(points_list *orbit){
     glEnd();
 }
 
-int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBUG) {
+int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIME_DELTA, bool DEBUG) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
@@ -121,22 +121,22 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBU
 
 
         if(REF_FRAME_CODE == 100){
-            rk4_equation_of_motion(body1, body2, 5000.0f);
+            rk4_equation_of_motion(body1, body2, TIME_DELTA);
 
         }else if(REF_FRAME_CODE == 101){
-           rk4_relative_equation_of_motion(body1, body2, 15000.0f);
+           rk4_relative_equation_of_motion(body1, body2, TIME_DELTA);
 
         }else if(REF_FRAME_CODE == 102){
-            relative_equation_of_motion(body1, body2, 5000.0f);
+            relative_equation_of_motion(body1, body2, TIME_DELTA);
 
         }else{
             exit(1); // should never be reached
         }
 
-        two_d_vector cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
+        vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
 
-        // two_d_vector *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
+        // vector2 *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
 
         // Clear the screen
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -145,13 +145,13 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBU
 
         // Mass 1
         glColor3f(1.0f, 0.5f, 0.2f); 
-        two_d_vector m1_grid_coords = normalize_vec2(body1->pos, min, max);
+        vector2 m1_grid_coords = normalize_vec2(body1->pos, min, max);
         drawCircle(m1_grid_coords, normalize(2 * body1->radius,min, max), 100); //add smth to normalize size of bodies
         // drawCircle(normalized_pos[0], normalized_pos[1], 0.03f, 100);
 
         // Mass 2
         glColor3f(0.2f, 0.7f, 1.0f);  
-        two_d_vector m2_grid_coords = normalize_vec2(body2->pos,min,max);
+        vector2 m2_grid_coords = normalize_vec2(body2->pos,min,max);
         drawCircle(m2_grid_coords, normalize(2 * body2->radius,min, max), 100);
         // drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
 

@@ -23,12 +23,12 @@ int validate_rendering_mode(char *REF_FRAME){
 }
 
 int main(int argc, char **argv){
-    
     char *REF_FRAME = NULL; //messy?
     int REF_FRAME_CODE = 0;
+    float TIME_DELTA = 10.0f; //time diff between frames
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
-    while((opt = getopt(argc, argv, "dm:h")) != -1) 
+    while((opt = getopt(argc, argv, "dm:ht:")) != -1) 
     { 
         switch(opt) 
         {
@@ -40,6 +40,14 @@ int main(int argc, char **argv){
                 REF_FRAME = optarg;
                 REF_FRAME_CODE = validate_rendering_mode(REF_FRAME); //validate
                 printf("Rendering Mode: %s\n", REF_FRAME); 
+                break; 
+            case 't': 
+                TIME_DELTA = atof(optarg);
+                if(TIME_DELTA == 0.0){
+                    printf("Time Step set to 0.0. No time will pass. Closing simulation...\n");
+                    exit(0);
+                } 
+                printf("Time Step Value is: %f\n", TIME_DELTA); 
                 break; 
             case 'h':
                 printf("Help Menu Placeholder!\n"); 
@@ -69,15 +77,15 @@ int main(int argc, char **argv){
 
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
-    body1->mass = mass_sun;
+    body1->mass = mass_sun * 5;
     body2->mass =  mass_earth / 2;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
     body1->pos.x = 0;
     body1->pos.y = 0;
-    body1->velocity.x = 5E3;
-    body1->velocity.y = 3;
+    body1->velocity.x = -6E3;
+    body1->velocity.y = -4E3;
     body1->radius = 695700E3;
 
     //BLUE IN SIM
@@ -96,7 +104,7 @@ int main(int argc, char **argv){
 
     //printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
 
-    render(body1, body2, REF_FRAME_CODE, DEBUG);
+    render(body1, body2, REF_FRAME_CODE, TIME_DELTA, DEBUG);
 
     // body2->pos.x = 8000E3;
     // body2->pos.y = 6000E3;

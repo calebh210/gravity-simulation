@@ -3,7 +3,7 @@ CFLAGS  = -Wall -g -O3 -Iinclude
 LIBS    = -lm -ldl -lglfw -lGL
 
 # break this out into individual object files at some point
-SRC     = src/main.c src/physics/gravity.c src/glad.c src/math/math_funcs.c src/utils/constants.c src/utils/utils.c
+SRC     = src/main.c src/physics/gravity.c src/glad.c src/math/math_funcs.c src/utils/constants.c src/utils/utils.c src/math/vector2.c
 OUTDIR  = build
 TARGET  = $(OUTDIR)/sim
 
