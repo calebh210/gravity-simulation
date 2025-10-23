@@ -1,8 +1,8 @@
 #ifndef MATH_FUNC_H
 #define MATH_FUNC_H
 
-#include "structures.h"
-#include "constants.h"
+#include "utils/structures.h"
+#include "utils/constants.h"
 
 two_d_vector find_cog(double m1,  two_d_vector pos1, double m2,  two_d_vector pos2);
 

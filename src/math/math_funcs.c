@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "math_funcs.h"
+#include "math/math_funcs.h"
 
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max) {

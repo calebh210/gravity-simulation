@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
-#include "structures.h"
-#include "gravity.h"
-#include "math_funcs.h"
+#include "utils/structures.h"
+#include "physics/gravity.h"
+#include "math/math_funcs.h"
 
 //Take the string argument for render_mode. Validate that it is correct
 // Return an int code to make it easier to work with
@@ -70,7 +70,7 @@ int main(int argc, char **argv){
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
     body1->mass = mass_sun;
-    body2->mass =  mass_sun / 2;
+    body2->mass =  mass_earth / 2;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM

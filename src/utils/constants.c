@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "utils/constants.h"
 // Newton's gravitational constant
 const double G = (6.6742E-11);
 

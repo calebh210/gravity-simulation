@@ -3,39 +3,11 @@
 #include <stdlib.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "math_funcs.h"
-#include "gravity.h"
+#include "math/math_funcs.h"
+#include "physics/gravity.h"
 
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
-
-
-points_list* init_list(){
-
-    points_list *pL = (points_list *)malloc(sizeof(points_list));
-    if(pL == NULL){
-        printf("uh oh");
-        exit(1);
-    }
-    pL->head = NULL;
-    return pL;
-}
-
-// add new point P to head of list
-void add_to_list(points_list *pL, point *p){
-    //check if the data is similar. if it's within a certain range, don't add it.
-    p->next = pL->head;
-    pL->head = p;    
-}
-
-void free_list(points_list *pL){
-    point *iterator;   
-    while(pL->head != NULL){
-        iterator = pL->head;
-        pL->head = pL->head->next;
-        free(iterator);
-    }
-}
 
 // Function to draw a circle at (cx, cy) with radius 
 void drawCircle(two_d_vector c, float r, int num_segments) {
@@ -79,7 +51,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBU
         return EXIT_FAILURE;
     }
 
-    GLFWwindow* window = glfwCreateWindow(1280, 900, "OpenGL Window", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1600, 900, "OpenGL Window", NULL, NULL);
     if (!window) {
         fprintf(stderr, "Failed to create GLFW window\n");
         glfwTerminate();
@@ -96,7 +68,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBU
     }
 
     // Set viewport and projection to match OpenGL's default -1 to 1 coordinate system
-    glViewport(0, 0, 1280, 1000);
+    glViewport(0, 0, 1600, 900);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);  // 2D orthographic projection
@@ -169,6 +141,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, bool DEBU
         // Clear the screen
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
 
         // Mass 1
         glColor3f(1.0f, 0.5f, 0.2f); 

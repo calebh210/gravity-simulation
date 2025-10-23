@@ -15,13 +15,4 @@ typedef struct
     two_d_vector velocity;
 } two_d_body;
 
-typedef struct point{
-    two_d_vector pos;
-    struct point *next;
-} point;
-
-typedef struct{
-    point *head;
-} points_list;
-
 #endif
