@@ -179,7 +179,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
         run++;
 
         //unreliable fps cap
-        glfwWaitEventsTimeout(0.008);
+        // glfwWaitEventsTimeout(0.008);
         
     }
 
