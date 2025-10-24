@@ -87,7 +87,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
     double max = 1.5 * AU;    
 
 
-    //list of points in the planet was at. used to draw orbits
+    //list of points where the planet was previously. used to draw orbits
     int num_bodies = 2;
     points_list* orbits_list[num_bodies];
     for(int i = 0; i < 2; i++){
@@ -179,7 +179,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
         run++;
 
         //unreliable fps cap
-        // glfwWaitEventsTimeout(0.008);
+        glfwWaitEventsTimeout(0.008);
         
     }
 

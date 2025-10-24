@@ -21,4 +21,6 @@ vector3 add_vec3s(vector3 vec1, vector3 vec2);
 //subtract two vec2s from eachother
 vector3 subtract_vec3s(vector3 vec1, vector3 vec2);
 
+double dot_vec3s(vector3 vec1, vector3 vec2);
+
 #endif
