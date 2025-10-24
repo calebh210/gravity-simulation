@@ -22,3 +22,19 @@ vector3 subtract_vec3s(vector3 vec1, vector3 vec2){
     vector3 difference = {vec1.x - vec2.x, vec1.y - vec2.y, vec1.z - vec2.z};
     return difference;
 }
+
+//calculate the dot product
+//a1b1 + a2b2 + a3b3
+double dot_vec3s(vector3 vec1, vector3 vec2){
+    double product = { (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z)};
+    return double;
+}
+
+//cross product!
+vector3 cross_product(vector3 vec1, vector3 vec2){
+    vector3 product;
+    product.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
+    product.y = (vec1.z * vec2.x) - (vec1.x * vec2.z);
+    product.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+    return product;
+}

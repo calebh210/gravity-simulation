@@ -23,5 +23,7 @@ vector2 add_4vec2s(vector2 vec1, vector2 vec2, vector2 vec3, vector2 vec4);
 //subtract two vec2s from eachother
 vector2 subtract_vec2s(vector2 vec1, vector2 vec2);
 
+//Dot Product
+double dot_vec2s(vector2 vec1, vector2 vec2);
 
 #endif

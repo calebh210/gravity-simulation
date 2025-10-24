@@ -18,13 +18,20 @@ vector2 add_vec2s(vector2 vec1, vector2 vec2){
     return sum;
 }
 
+//subtract two vec2s from eachother
+vector2 subtract_vec2s(vector2 vec1, vector2 vec2){
+    vector2 diff = { vec1.x - vec2.x, vec1.y - vec2.y};
+    return diff;
+}
+
 //Add 4 vecs (used for RK4)
 vector2 add_4vec2s(vector2 vec1, vector2 vec2, vector2 vec3, vector2 vec4){
     return add_vec2s(add_vec2s(vec1, vec2), add_vec2s(vec3, vec4));
 }
 
-//subtract two vec2s from eachother
-vector2 subtract_vec2s(vector2 vec1, vector2 vec2){
-    vector2 diff = { vec1.x - vec2.x, vec1.y - vec2.y};
-    return diff;
+//calculate the dot product
+//a1 * b1 + a2 * b2
+double dot_vec2s(vector2 vec1, vector2 vec2){
+    double product = { (vec1.x * vec2.x) + (vec1.y + vec2.y)};
+    return product;
 }

@@ -16,3 +16,10 @@ vector4 subtract_vec4s(vector4 vec1, vector4 vec2){
     vector4 difference = {vec1.x - vec2.x, vec1.y - vec2.y, vec1.z - vec2.z, vec1.w - vec2.w};
     return difference;
 }
+
+//4d dot product
+//a1b1 + a2b2 + a3b3 + a4b4
+double dot_vec4s(vector4 vec1, vector4 vec2){
+    double product = { (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z) + (vec1.w * vec2.w)};
+    return double;
+}
