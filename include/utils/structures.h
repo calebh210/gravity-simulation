@@ -1,18 +1,23 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
-typedef struct 
-{
-    double x; 
-    double y;
-} two_d_vector;
+#include "math/vector/vector2.h"
+#include "math/vector/vector3.h"
 
 typedef struct 
 {
     double mass; // in kg
     double radius; //in m
-    two_d_vector pos;
-    two_d_vector velocity;
+    vector2 pos;
+    vector2 velocity;
 } two_d_body;
+
+typedef struct 
+{
+    double mass; // in kg
+    double radius; //in m
+    vector3 pos;
+    vector3 velocity;
+} body_3d;
 
 #endif
