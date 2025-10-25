@@ -146,7 +146,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
         // Mass 1
         glColor3f(1.0f, 0.5f, 0.2f); 
         vector2 m1_grid_coords = normalize_vec2(body1->pos, min, max);
-        drawCircle(m1_grid_coords, normalize(2 * body1->radius,min, max), 100); //add smth to normalize size of bodies
+        drawCircle(m1_grid_coords, normalize(body1->radius,min, max), 100); //add smth to normalize size of bodies
         // drawCircle(normalized_pos[0], normalized_pos[1], 0.03f, 100);
 
         // Mass 2

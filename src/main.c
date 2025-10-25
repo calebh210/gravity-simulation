@@ -78,7 +78,7 @@ int main(int argc, char **argv){
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body)*2);
 
     body1->mass = mass_sun * 5;
-    body2->mass =  mass_earth / 2;
+    body2->mass =  mass_sun;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
@@ -86,13 +86,13 @@ int main(int argc, char **argv){
     body1->pos.y = 0;
     body1->velocity.x = -6E3;
     body1->velocity.y = -4E3;
-    body1->radius = 695700E3;
+    body1->radius = 695700E4;
 
     //BLUE IN SIM
     body2->pos.x = AU * 0.5;
     body2->pos.y = -AU * 0.5;
-    body2->velocity.x = -2E3;
-    body2->velocity.y = 20E3;
+    body2->velocity.x = 2E3;
+    body2->velocity.y = 45E3;
     body2->radius = 695700E3;
 
     if(scharzchild_radius(body1->mass) > body1->radius){
