@@ -5,6 +5,8 @@
 #include <GLFW/glfw3.h>
 #include "math/math_funcs.h"
 #include "physics/gravity.h"
+#include "physics/cr3bp.h"
+
 
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
@@ -45,7 +47,7 @@ void drawOrbits(points_list *orbit){
     glEnd();
 }
 
-int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIME_DELTA, bool DEBUG) {
+int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, bool DEBUG) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
@@ -95,6 +97,11 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
     }
 
 
+    // Temp code while I figure out the best way to do the body arrays
+
+    two_d_body* body1 = bodies_array[0];
+    two_d_body* body2 = bodies_array[1];
+
     // Render loop
     // -1 is defined as the infinite run condition
    while (!glfwWindowShouldClose(window) && (RUN_LIMIT == -1 || run <= RUN_LIMIT)) {
@@ -108,6 +115,7 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
             // printf and reset timer
             // debug printf statements
             double r = sqrt(((body1->pos.x - body2->pos.x)*(body1->pos.x - body2->pos.x)) + ((body1->pos.y - body2->pos.y)*(body1->pos.y - body2->pos.y)));
+
             printf("\n Current Frame = %d", run);
             printf("\n%f ms/frame", 1000.0/(double)(nbFrames));
             printf("\n Distance between B1 and B2 = %lf", r);
@@ -129,7 +137,17 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
         }else if(REF_FRAME_CODE == 102){
             relative_equation_of_motion(body1, body2, TIME_DELTA);
 
+        }else if(REF_FRAME_CODE == 103){
+            two_d_body* t = bodies_array[2];
+            solve_cr3bp(body1, body2, t, TIME_DELTA);
+
+            //the third body in the CR3BP
+            glColor3f(0.3f, 0.7f, 1.0f);  
+            vector2 m2_grid_coords = normalize_vec2(t->pos,min,max);
+            drawCircle(m2_grid_coords, 0.01f, 100);
+
         }else{
+            
             exit(1); // should never be reached
         }
 
@@ -137,11 +155,6 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
 
 
         // vector2 *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
-
-        // Clear the screen
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
 
         // Mass 1
         glColor3f(1.0f, 0.5f, 0.2f); 
@@ -180,6 +193,10 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
 
         //unreliable fps cap
         glfwWaitEventsTimeout(0.008);
+
+        // Clear the screen
+        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         
     }
 

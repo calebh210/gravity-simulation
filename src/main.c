@@ -17,6 +17,8 @@ int validate_rendering_mode(char *REF_FRAME){
         return 101;
     } else if(strcmp(REF_FRAME, "relative") == 0){
         return 102;
+    } else if(strcmp(REF_FRAME, "cr3bp") == 0){
+        return 103;
     }else{
         printf("Render Mode not recognized. Exiting...\n");
         exit(1);
@@ -29,7 +31,9 @@ int main(int argc, char **argv){
     float TIME_DELTA = 10.0f; //time diff between frames
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
-    while((opt = getopt(argc, argv, "dm:ht:")) != -1) 
+    int NUM_BODIES = 0;
+
+    while((opt = getopt(argc, argv, "dm:ht:n:")) != -1) 
     { 
         switch(opt) 
         {
@@ -53,6 +57,9 @@ int main(int argc, char **argv){
             case 'h':
                 printf("Help Menu Placeholder!\n"); 
                 exit(0); // shouldnt continue if help menu called
+                break;
+            case 'n': //define the num of bodies
+                NUM_BODIES = atoi(optarg);
                 break;
             case ':': 
                 printf("option needs a value\n"); 
@@ -78,28 +85,28 @@ int main(int argc, char **argv){
 
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body));
 
-    body1->mass = mass_sun * 2;
-    body2->mass =  mass_sun;
+    body1->mass = mass_sun;
+    body2->mass =  mass_sun * 0.75;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
     body1->pos.x = 0;
     body1->pos.y = 0;
-    body1->velocity.x = -6E3;
-    body1->velocity.y = -4E3;
+    body1->velocity.x = 0E3;
+    body1->velocity.y = 0E3;
     body1->radius = 695700E4;
 
     //BLUE IN SIM
-    body2->pos.x = AU * 0.5;
-    body2->pos.y = -AU * 0.5;
+    body2->pos.x = AU * 0.75;
+    body2->pos.y = -AU * 0.75;
     body2->velocity.x = 2E3;
-    body2->velocity.y = 5E3;
-    body2->radius = 695700E3;
+    body2->velocity.y = 2E3;
+    body2->radius = 495700E4;
 
     two_d_body *t = ( two_d_body*) malloc(sizeof(two_d_body));
     t->mass = 500;
-    t->pos.x = 0;
-    t->pos.y = 0;
+    t->pos.x = 0 * 0.5;
+    t->pos.y = AU * 0.5;
     t->velocity.x = 2E3;
     t->velocity.y = 1E3;
     t->radius = 695700;
@@ -116,13 +123,16 @@ int main(int argc, char **argv){
         sleep(5);
     }
 
+    // this array is harcoded ATM, but it should be configurable at some point
+    two_d_body* bodies_array[NUM_BODIES];
 
-    for(int i=0; i < 100; i++){
-            solve_cr3bp(body1, body2, t);
-    }
-    //printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
+    bodies_array[0] = body1;
+    bodies_array[1] = body2;
+    bodies_array[2] = t;
 
-    // render(body1, body2, REF_FRAME_CODE, TIME_DELTA, DEBUG);
+    // printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
+
+    render(bodies_array, REF_FRAME_CODE, TIME_DELTA, DEBUG);
 
     // body2->pos.x = 8000E3;
     // body2->pos.y = 6000E3;

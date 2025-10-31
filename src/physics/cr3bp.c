@@ -26,10 +26,13 @@
 This ONLY solves the position and velocity of T
 I still need to render the the equation of motion to update b1 and b2
 */
-double solve_cr3bp(const two_d_body *b1, const two_d_body *b2, two_d_body *t){
+double solve_cr3bp(const two_d_body *init_b1, const two_d_body *init_b2, two_d_body *t, double h){
 
-    // the time step
-    double h = 1000.0; 
+    //get local ones to paly with
+    two_d_body *b1 = init_b1;
+    two_d_body *b2 = init_b2;
+
+
     // get angular velocity
     printf("The masses %lf, %lf \n", b1->mass, b2->mass);
     double u = standard_gravitational_parameter(b1->mass, b2->mass); // this is the problem
@@ -50,6 +53,18 @@ double solve_cr3bp(const two_d_body *b1, const two_d_body *b2, two_d_body *t){
     Define the position of m relative to the barycenter as:
     r = xi + yk + zk
     */
+
+    //frame conversion
+    vector2 com = find_cog(b1->mass,b1->pos,b2->mass, b2->pos);
+
+    b1->pos.x -= com.x;
+    b1->pos.y -= com.y;
+    b2->pos.x -= com.x;
+    b2->pos.y -= com.y;
+    t->pos.x  -= com.x;
+    t->pos.y  -= com.y;
+
+
 
     //NOTE this can be put into its own function
     // Calculate the position of the tertiary mass t from larger mass m1
