@@ -105,8 +105,8 @@ int main(int argc, char **argv){
 
     two_d_body *t = ( two_d_body*) malloc(sizeof(two_d_body));
     t->mass = 500;
-    t->pos.x = 0 * 0.5;
-    t->pos.y = AU * 0.5;
+    t->pos.x = 0;
+    t->pos.y = AU;
     t->velocity.x = 2E3;
     t->velocity.y = 1E3;
     t->radius = 695700;

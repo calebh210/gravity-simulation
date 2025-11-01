@@ -26,11 +26,11 @@
 This ONLY solves the position and velocity of T
 I still need to render the the equation of motion to update b1 and b2
 */
-double solve_cr3bp(const two_d_body *init_b1, const two_d_body *init_b2, two_d_body *t, double h){
+double solve_cr3bp(two_d_body *b1, two_d_body *b2, two_d_body *t, double h){
 
-    //get local ones to paly with
-    two_d_body *b1 = init_b1;
-    two_d_body *b2 = init_b2;
+    // //get local ones to paly with
+    // two_d_body *b1 = init_b1;
+    // two_d_body *b2 = init_b2;
 
 
     // get angular velocity
