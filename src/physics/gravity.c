@@ -39,7 +39,15 @@ void drawOrbits(points_list *orbit){
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
         point *iterator = orbit->head;  
+
+        // A way to limit the length of the orbit trails 
+        // int limit = iterator->count - 1000;
+        int limit = 0; // setting it to 0 makes the trails last forever
+
         while(iterator != NULL){
+            if(iterator->count - limit <= 0){
+                break;
+            }
             glVertex2f(iterator->pos.x, iterator->pos.y);
             iterator = iterator->next;
         }
@@ -165,7 +173,7 @@ int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, boo
         // Mass 2
         glColor3f(0.2f, 0.7f, 1.0f);  
         vector2 m2_grid_coords = normalize_vec2(body2->pos,min,max);
-        drawCircle(m2_grid_coords, normalize(2 * body2->radius,min, max), 100);
+        drawCircle(m2_grid_coords, normalize(body2->radius,min, max), 100);
         // drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
 
         point *new_point = ( point * )malloc(sizeof(point));
