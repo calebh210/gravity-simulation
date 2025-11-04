@@ -19,6 +19,8 @@ int validate_rendering_mode(char *REF_FRAME){
         return 102;
     } else if(strcmp(REF_FRAME, "cr3bp") == 0){
         return 103;
+    } else if(strcmp(REF_FRAME, "n-body") == 0){
+        return 200;
     }else{
         printf("Render Mode not recognized. Exiting...\n");
         exit(1);
@@ -85,31 +87,39 @@ int main(int argc, char **argv){
 
     two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body));
 
-    body1->mass = mass_sun;
-    body2->mass =  mass_sun * 0.75;
+    body1->mass = mass_earth * 5;
+    body2->mass =  mass_sun * 5;
 
     //E3 to convert from KM to M
     // ORANGE IN SIM
-    body1->pos.x = 0;
-    body1->pos.y = -AU;
-    body1->velocity.x = 4E3;
-    body1->velocity.y = 0;
+    body1->pos.x = 500E4;
+    body1->pos.y = AU;
+    body1->velocity.x = 42E3;
+    body1->velocity.y = -43E3;
     body1->radius = 695700E3;
 
     //BLUE IN SIM
-    body2->pos.x = AU;
-    body2->pos.y = -AU;
-    body2->velocity.x = -2E3;
-    body2->velocity.y = 20E3;
+    body2->pos.x = 548E4;
+    body2->pos.y = -AU * 1.5;
+    body2->velocity.x = 20E3;
+    body2->velocity.y = 120E3;
     body2->radius = 695700E3;
 
     two_d_body *t = ( two_d_body*) malloc(sizeof(two_d_body));
-    t->mass = 500;
-    t->pos.x = 0;
-    t->pos.y = AU;
-    t->velocity.x = -18E3;
-    t->velocity.y = 1E3;
+    t->mass = mass_earth;
+    t->pos.x = -AU * 0.5;
+    t->pos.y = 120E5;
+    t->velocity.x = 29E3;
+    t->velocity.y = 80E3;
     t->radius = 695700;
+
+    two_d_body *body3 = ( two_d_body*) malloc(sizeof( two_d_body));
+    body3->mass =  mass_earth;
+    body3->pos.x = -AU;
+    body3->pos.y = -AU * .43;
+    body3->velocity.x = 2E3;
+    body3->velocity.y = -20E3;
+    body3->radius = 6371E3;
 
     if (!body1 || !body2 || !t) {
         printf("Failed to allocate memory");
@@ -129,13 +139,10 @@ int main(int argc, char **argv){
     bodies_array[0] = body1;
     bodies_array[1] = body2;
     bodies_array[2] = t;
+    bodies_array[3] = body3;
 
     // printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
 
-    render(bodies_array, REF_FRAME_CODE, TIME_DELTA, DEBUG);
-
-    // body2->pos.x = 8000E3;
-    // body2->pos.y = 6000E3;
-    // relative_equation_of_motion(body1, body2);
+    render(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
 
 }

@@ -15,5 +15,6 @@ float normalize(double value, double min, double max);
 void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2);
 void runge_kutta(double t, double h, double m, two_d_body *b);
 void coint_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2);
+void rk4_nbody(double t, double h, two_d_body* bodies[], int NUM_BODIES);
 
 #endif
