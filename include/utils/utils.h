@@ -6,6 +6,7 @@
 typedef struct point{
     vector2 pos;
     struct point *next;
+    int count;
 } point;
 
 typedef struct{
