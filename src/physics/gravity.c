@@ -173,8 +173,9 @@ int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int
             // printf and reset timer
             // debug printf statements
 
-            printf("\n Current Frame = %d", run);
+            printf("\nCurrent Frame = %d", run);
             printf("\n%f ms/frame", 1000.0/(double)(nbFrames));
+            printf("\nRendering With: %s", glGetString(GL_RENDERER));
             for(int i=0;i<NUM_BODIES;i++){
                 printf("\n B%d Velocity = {%lf, %lf}", i, bodies_array[i]->velocity.x, bodies_array[i]->velocity.y);
                 printf("\n B%d Position = {%lf, %lf}", i, bodies_array[i]->pos.x, bodies_array[i]->pos.y);

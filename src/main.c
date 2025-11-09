@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
+#include <yaml.h>
 #include "utils/structures.h"
 #include "physics/gravity.h"
 #include "math/math_funcs.h"
@@ -27,13 +28,167 @@ int validate_rendering_mode(char *REF_FRAME){
     }
 }
 
+// This func parses the config file init.yaml which contains the initial conditions of the sim 
+// Currently it works-ish, but isn't very robust, and def needs work
+// Also, unsure if it should live here?
+void parse_config_file(two_d_body* bodies_array[], int NUM_BODIES){
+    //https://www.wpsoftware.net/andrew/pages/libyaml.html
+    FILE *fh = fopen("init.yaml", "r");
+    yaml_parser_t parser;
+    yaml_event_t  event;
+
+    if(!yaml_parser_initialize(&parser)){
+        puts("Failed to initialize YAML parser");
+    }
+    if(fh == NULL){
+        puts("Failed to open YAML file");
+    }
+
+    yaml_parser_set_input_file(&parser, fh);
+
+    int NUM_BODIES_YAML = 0; // need to check if this is the same or not from the -n option
+    bool mass_next = false;
+    bool pos_next = false;
+    bool vel_next = false;
+    bool radius_next = false;
+
+    do {
+        yaml_parser_parse(&parser, &event);
+
+        switch(event.type)
+        {
+        case YAML_NO_EVENT: puts("No event!"); break;
+        // case YAML_STREAM_START_EVENT: puts("STREAM START"); break;
+        // case YAML_STREAM_END_EVENT:   puts("STREAM END");   break;
+        // case YAML_DOCUMENT_START_EVENT: puts("<b>Start Document</b>"); break;
+        // case YAML_DOCUMENT_END_EVENT:   puts("<b>End Document</b>");   break;
+        // case YAML_SEQUENCE_START_EVENT: puts("<b>Start Sequence</b>"); break;
+        // case YAML_SEQUENCE_END_EVENT:   puts("<b>End Sequence</b>");   break;
+        // case YAML_MAPPING_START_EVENT:  puts("<b>Start Mapping</b>");  break;
+        case YAML_MAPPING_END_EVENT:    puts("<b>End Mapping</b>");  NUM_BODIES_YAML++; break;
+
+        // This is where the key/value pairs are
+        case YAML_SCALAR_EVENT: 
+
+            if(NUM_BODIES_YAML > NUM_BODIES - 1) continue; // temp line while I think about how I want to do this
+
+                if(strcmp((const char*)event.data.scalar.value, "Name") == 0){
+                    
+                    two_d_body *body = ( two_d_body*) malloc(sizeof( two_d_body));
+                    if(body == NULL){
+                        printf("Failed to allocate memory for body...\n");
+                        exit(1);
+                    }
+                    printf("Mapping this body into %d of array \n", NUM_BODIES_YAML);
+                    bodies_array[NUM_BODIES_YAML] = body;
+                    break;
+
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Mass") == 0){
+                    mass_next = true;
+                    break;
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Position") == 0){
+                    pos_next = true;
+                    break;
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Velocity") == 0){
+                    vel_next = true;
+                    break;
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Radius") == 0){
+                    radius_next = true;
+                    break;
+                }
+
+                if(mass_next){
+                    char *stopstring;                                                   
+                    bodies_array[NUM_BODIES_YAML]->mass = strtod((const char*)event.data.scalar.value, &stopstring);   
+                    mass_next = false;
+                    printf("Mass = %s\n", event.data.scalar.value);
+                    break;
+
+                }
+
+                if(pos_next){
+                    char *token;
+                    char *stopstring;                                                   
+
+                    // get the X
+                    token = strtok((char*)event.data.scalar.value, ",");
+                    bodies_array[NUM_BODIES_YAML]->pos.x = strtod(token, &stopstring);  
+
+                    printf("%s\n", token);
+
+                    // Get the Y
+                    token = strtok(NULL, ","); 
+                    bodies_array[NUM_BODIES_YAML]->pos.y = strtod(token, &stopstring);   
+
+                    // add something here to detect if its set to 3d, and if yes then read a third pos
+
+                    pos_next = false;
+                    break;
+
+                }
+
+                if(vel_next){
+
+                    char *token;
+                    char *stopstring;                                                   
+
+                    // get the X
+                    token = strtok((char*)event.data.scalar.value, ",");
+                    bodies_array[NUM_BODIES_YAML]->velocity.x = strtod(token, &stopstring);  
+
+                    printf("%s\n", token);
+
+                    // Get the Y
+                    token = strtok(NULL, ","); 
+                    bodies_array[NUM_BODIES_YAML]->velocity.y = strtod(token, &stopstring); 
+
+                    vel_next = false;
+                    break;
+                }
+
+                if(radius_next){
+                    char *stopstring;                                                   
+
+                    // get the radius
+                    bodies_array[NUM_BODIES_YAML]->radius = strtod((const char*)event.data.scalar.value, &stopstring);  
+
+                    radius_next = false;
+                    break;
+
+                }
+
+
+
+            break;
+
+        default:
+        }
+        if(event.type != YAML_STREAM_END_EVENT)
+            yaml_event_delete(&event);
+
+    } while(event.type != YAML_STREAM_END_EVENT);
+        yaml_event_delete(&event);
+
+    printf("NUM OF BODIES IN YAML: %d\n", NUM_BODIES_YAML); //subtract one since the file emits a token
+    yaml_parser_delete(&parser);
+    fclose(fh);
+}
+
 int main(int argc, char **argv){
     char *REF_FRAME = NULL; //messy?
     int REF_FRAME_CODE = 0;
     float TIME_DELTA = 10.0f; //time diff between frames
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
-    int NUM_BODIES = 0;
+    int NUM_BODIES = 2; // defaulting this to two seems correct?
 
     while((opt = getopt(argc, argv, "dm:ht:n:")) != -1) 
     { 
@@ -79,69 +234,15 @@ int main(int argc, char **argv){
        exit(0);
     }
 
-
-
-
-
-    two_d_body *body1 = ( two_d_body*) malloc(sizeof( two_d_body));
-
-    two_d_body *body2 = ( two_d_body*) malloc(sizeof( two_d_body));
-
-    body1->mass = mass_earth * 5;
-    body2->mass =  mass_sun * 5;
-
-    //E3 to convert from KM to M
-    // ORANGE IN SIM
-    body1->pos.x = 500E4;
-    body1->pos.y = AU;
-    body1->velocity.x = 42E3;
-    body1->velocity.y = -43E3;
-    body1->radius = 695700E3;
-
-    //BLUE IN SIM
-    body2->pos.x = 548E4;
-    body2->pos.y = -AU * 1.5;
-    body2->velocity.x = 20E3;
-    body2->velocity.y = 120E3;
-    body2->radius = 695700E3;
-
-    two_d_body *t = ( two_d_body*) malloc(sizeof(two_d_body));
-    t->mass = mass_earth;
-    t->pos.x = -AU * 0.5;
-    t->pos.y = 120E5;
-    t->velocity.x = 29E3;
-    t->velocity.y = 80E3;
-    t->radius = 695700;
-
-    two_d_body *body3 = ( two_d_body*) malloc(sizeof( two_d_body));
-    body3->mass =  mass_earth;
-    body3->pos.x = -AU;
-    body3->pos.y = -AU * .43;
-    body3->velocity.x = 2E3;
-    body3->velocity.y = -20E3;
-    body3->radius = 6371E3;
-
-    if (!body1 || !body2 || !t) {
-        printf("Failed to allocate memory");
-        exit(1);
+    //Ensure Num Bodies is not 0
+    if(NUM_BODIES == 0){
+        printf("NUM_BODIES is set to 0. Please add atleast one.\n");
     }
 
-
-    if(scharzchild_radius(body1->mass) > body1->radius){
-        printf("Body is a black hole");
-        fflush(stdout);
-        sleep(5);
-    }
-
-    // this array is harcoded ATM, but it should be configurable at some point
+    // Create the NUM_BODIES array
     two_d_body* bodies_array[NUM_BODIES];
 
-    bodies_array[0] = body1;
-    bodies_array[1] = body2;
-    bodies_array[2] = t;
-    bodies_array[3] = body3;
-
-    // printf("Scharzchild Radius %lfm", scharzchild_radius(mass_earth));
+    parse_config_file(bodies_array, NUM_BODIES);
 
     render(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
 
