@@ -1,4 +1,5 @@
 #include "math/vector/vector2.h"
+#include <math.h>
 
 // normalize a vector2 to something that opengl can render
 vector2 normalize_vec2(vector2 vec, double min, double max) {
@@ -10,6 +11,10 @@ vector2 normalize_vec2(vector2 vec, double min, double max) {
 vector2 scale_vec2(vector2 vec, double s){
     vector2 scaled = {vec.x * s, vec.y * s};
     return scaled;
+}
+
+double magnitude_vec2(vector2 vec){
+    return sqrt(pow(vec.x, 2) + pow(vec.y, 2));
 }
 
 // Add two vectors and return their sum
@@ -27,6 +32,12 @@ vector2 subtract_vec2s(vector2 vec1, vector2 vec2){
 //Add 4 vecs (used for RK4)
 vector2 add_4vec2s(vector2 vec1, vector2 vec2, vector2 vec3, vector2 vec4){
     return add_vec2s(add_vec2s(vec1, vec2), add_vec2s(vec3, vec4));
+}
+
+//calculate the distance between two vec2s
+double vec2_distance_between(vector2 v1, vector2 v2){
+    double r = sqrt(((v2.x - v1.x)*(v2.x - v1.x)) + ((v2.y - v1.y)*(v2.y - v1.y)));
+    return r;
 }
 
 //calculate the dot product

@@ -4,10 +4,31 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "math/math_funcs.h"
+#include "math/vector/vector2.h"
 #include "physics/gravity.h"
+#include "physics/cr3bp.h"
+
 
 double gravity_equation(double m1, double m2, double r);
 double gravity_acceleration(double M, double r);
+
+
+// find the center of gravity from a N-body system
+vector2 find_nbody_cog(two_d_body* bodies[], int NUM_BODIES){
+    
+    // sum up the mass of the bodies
+    double total_m = 0;
+    vector2 pos = {0.0, 0.0};
+    for(int i = 0; i < NUM_BODIES; i++){
+        total_m += bodies[i]->mass;
+        vector2 w = scale_vec2(bodies[i]->pos, bodies[i]->mass);
+        pos = add_vec2s(pos, w);
+    }
+
+    pos = scale_vec2(pos, (1 / total_m));
+
+    return pos;
+}
 
 // Function to draw a circle at (cx, cy) with radius 
 void drawCircle(vector2 c, float r, int num_segments) {
@@ -30,22 +51,74 @@ void drawCircle(vector2 c, float r, int num_segments) {
 //trying to draw an orbit path
 //use while to iterate over the points in the linked list, and draw them
 // this never clears the old points, and may cause memory issues
-void drawOrbits(points_list *orbit){
+void drawOrbits(points_list* orbits_list[], int N){
+
     glBegin(GL_POINTS);
 
         glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
-        point *iterator = orbit->head;  
-        while(iterator != NULL){
-            glVertex2f(iterator->pos.x, iterator->pos.y);
-            iterator = iterator->next;
+
+        for(int i = 0; i < N; i++){
+
+            points_list *orbit = orbits_list[i];
+
+            point *iterator = orbit->head;  
+
+            // A way to limit the length of the orbit trails 
+            // int limit = iterator->count - 3000;
+            int limit = 0; // setting it to 0 makes the trails last forever
+
+            while(iterator != NULL){
+                if(iterator->count - limit <= 0){
+                    break;
+                }
+                glVertex2f(iterator->pos.x, iterator->pos.y);
+                iterator = iterator->next;
+            }
         }
 
     glEnd();
 }
 
-int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIME_DELTA, bool DEBUG) {
+// Draw the bodies in bodies_array at their updated position
+// N is the number of bodies
+void drawBodies(two_d_body* bodies_array[], points_list* orbits_list[], int N){
+
+    //used for normalization
+    double min = -1.5 * AU;
+    double max = 1.5 * AU;   
+
+    for(int i=0; i < N;i++){
+        glColor3f(0.8f, 0.7f, 0.1f);  
+        vector2 coords = normalize_vec2(bodies_array[i]->pos,min,max);
+        drawCircle(coords, normalize(bodies_array[i]->radius,min,max), 100);
+
+        // updateOrbits
+        // Since I've already calculated the coords here, it makes sense to update the orbit line here too
+        updateOrbits(orbits_list[i], coords);
+    }
+
+}
+
+void updateOrbits(points_list* orbits_list, vector2 coords){
+
+    point *new_point = ( point * )malloc(sizeof(point));
+    new_point->pos = coords;
+    add_to_list(orbits_list, new_point);
+
+}
+
+// Free the memory reserved in an orbits list
+void freeOrbitsList(points_list* orbits_list[], int N){
+    for(int i = 0; i < N; i++){
+        free_list(orbits_list[i]);
+    }
+
+    puts("\nCorrectly freed all orbits list memory");
+}
+
+int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NUM_BODIES, bool DEBUG) {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
         return EXIT_FAILURE;
@@ -80,25 +153,17 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
     double lastTime = glfwGetTime();
     int nbFrames = 0;
 
-    int run = 0;
-
-    //used for normalization
-    double min = -1.5 * AU;
-    double max = 1.5 * AU;    
-
+    int run = 0;  
 
     //list of points where the planet was previously. used to draw orbits
-    int num_bodies = 2;
-    points_list* orbits_list[num_bodies];
-    for(int i = 0; i < 2; i++){
+    points_list* orbits_list[NUM_BODIES];
+    for(int i = 0; i < NUM_BODIES; i++){
         orbits_list[i] = init_list();
     }
-
 
     // Render loop
     // -1 is defined as the infinite run condition
    while (!glfwWindowShouldClose(window) && (RUN_LIMIT == -1 || run <= RUN_LIMIT)) {
-
 
         // Frame timer
         double currentTime = glfwGetTime();
@@ -107,89 +172,72 @@ int render( two_d_body* body1,  two_d_body* body2, int REF_FRAME_CODE, float TIM
         if ( currentTime - lastTime >= 1.0 && DEBUG){ // If last prinf() was more than 1 sec ago
             // printf and reset timer
             // debug printf statements
-            double r = sqrt(((body1->pos.x - body2->pos.x)*(body1->pos.x - body2->pos.x)) + ((body1->pos.y - body2->pos.y)*(body1->pos.y - body2->pos.y)));
-            printf("\n Current Frame = %d", run);
+
+            printf("\nCurrent Frame = %d", run);
             printf("\n%f ms/frame", 1000.0/(double)(nbFrames));
-            printf("\n Distance between B1 and B2 = %lf", r);
-            printf("\n B1 Velocity = {%lf, %lf}", body1->velocity.x, body1->velocity.y);
-            printf("\n B1 Position = {%lf, %lf}", body1->pos.x, body1->pos.y);
-            printf("\n B2 Velocity = {%lf, %lf}", body2->velocity.x, body2->velocity.y);
-            printf("\n B2 Position = {%lf, %lf}", body2->pos.x, body2->pos.y);
+            printf("\nRendering With: %s", glGetString(GL_RENDERER));
+            for(int i=0;i<NUM_BODIES;i++){
+                printf("\n B%d Velocity = {%lf, %lf}", i, bodies_array[i]->velocity.x, bodies_array[i]->velocity.y);
+                printf("\n B%d Position = {%lf, %lf}", i, bodies_array[i]->pos.x, bodies_array[i]->pos.y);
+            }
+
             nbFrames = 0;
             lastTime += 1.0;
         }
 
-
         if(REF_FRAME_CODE == 100){
-            rk4_equation_of_motion(body1, body2, TIME_DELTA);
-
+            rk4_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+            // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
         }else if(REF_FRAME_CODE == 101){
-           rk4_relative_equation_of_motion(body1, body2, TIME_DELTA);
+           rk4_relative_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+            // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
         }else if(REF_FRAME_CODE == 102){
-            relative_equation_of_motion(body1, body2, TIME_DELTA);
+            relative_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+            // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
+
+        }else if(REF_FRAME_CODE == 103){
+            solve_cr3bp(bodies_array[0], bodies_array[1], bodies_array[2], TIME_DELTA);
+
+        }else if(REF_FRAME_CODE == 200){
+            rk4_nbody(0, TIME_DELTA, bodies_array, NUM_BODIES);
+
+            // vector2 cent_of_m = find_nbody_cog(bodies_array, NUM_BODIES);
 
         }else{
+            
             exit(1); // should never be reached
         }
 
-        vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
+        // Draw the bodies in OpenGL
+        drawBodies(bodies_array, orbits_list, NUM_BODIES);
 
-
-        // vector2 *cent_of_m = equation_of_motion(body1, body2, 100000.0f);
-
-        // Clear the screen
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-
-        // Mass 1
-        glColor3f(1.0f, 0.5f, 0.2f); 
-        vector2 m1_grid_coords = normalize_vec2(body1->pos, min, max);
-        drawCircle(m1_grid_coords, normalize(body1->radius,min, max), 100); //add smth to normalize size of bodies
-        // drawCircle(normalized_pos[0], normalized_pos[1], 0.03f, 100);
-
-        // Mass 2
-        glColor3f(0.2f, 0.7f, 1.0f);  
-        vector2 m2_grid_coords = normalize_vec2(body2->pos,min,max);
-        drawCircle(m2_grid_coords, normalize(2 * body2->radius,min, max), 100);
-        // drawCircle(normalized_pos[2], normalized_pos[3], 0.02f, 100);
-
-        point *new_point = ( point * )malloc(sizeof(point));
-        new_point->pos = m1_grid_coords;
-        add_to_list(orbits_list[0], new_point);
-
-        point *new_point2 = ( point * )malloc(sizeof(point));
-        new_point2->pos = m2_grid_coords;
-        add_to_list(orbits_list[1], new_point2);
-
-        drawOrbits(orbits_list[0]);
-        drawOrbits(orbits_list[1]);
-
-        // Center of Mass
-        cent_of_m = normalize_vec2(cent_of_m, min, max);
-        glColor3f(0.2f, 1.0f, 0.3f);  
-        drawCircle(cent_of_m, 0.005f, 100);
-
+        // Draw the orbits in OpenGL
+        drawOrbits(orbits_list, NUM_BODIES);
 
         glfwSwapBuffers(window);
 
         glfwPollEvents();
 
-        run++;
-
         //unreliable fps cap
         glfwWaitEventsTimeout(0.008);
+
+        // Clear the screen
+        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         
+        run++;
     }
 
-    free_list(orbits_list[0]);
-    free_list(orbits_list[1]);
+
+
 
     // Cleanup
     glfwDestroyWindow(window);
     glfwTerminate();
+    freeOrbitsList(orbits_list, NUM_BODIES);
 
+    puts("\nSimulation Ending...");
     return EXIT_SUCCESS;
 }
 

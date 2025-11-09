@@ -17,6 +17,11 @@ points_list* init_list(){
 void add_to_list(points_list *pL, point *p){
     //check if the data is similar. if it's within a certain range, don't add it.
     p->next = pL->head;
+    if(pL->head == NULL){
+        p->count = 1;
+    } else {
+        p->count = pL->head->count + 1;
+    }
     pL->head = p;    
 }
 

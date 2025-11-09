@@ -11,3 +11,4 @@ const long c = 299792458;
 // Celestial Masses
 const double mass_earth = 5.97219E24;
 const double mass_sun = 1.9891E30;
+const double mass_sagA = 8.5E36;
