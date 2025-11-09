@@ -1,3 +1,4 @@
 build/*
 out/sim
 *.out
+init.yaml
