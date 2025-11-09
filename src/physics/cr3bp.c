@@ -26,7 +26,7 @@
 This ONLY solves the position and velocity of T
 I still need to render the the equation of motion to update b1 and b2
 */
-double solve_cr3bp(two_d_body *b1, two_d_body *b2, two_d_body *t, double h){
+void solve_cr3bp(two_d_body *b1, two_d_body *b2, two_d_body *t, double h){
 
     // //get local ones to paly with
     // two_d_body *b1 = init_b1;
@@ -45,8 +45,6 @@ double solve_cr3bp(two_d_body *b1, two_d_body *b2, two_d_body *t, double h){
     // get x coords relative to the CoG
     double ratio1 = b1->mass / (b1->mass + b2->mass);
     double ratio2 = 1 - ratio1;
-    double x1 = -ratio2 * r1_2;
-    double x2 = ratio1 * r1_2;
     
     /*  
     Define the tertiary mass (m) such that m.mass = 1 
