@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <glad/glad.h>
+#include <glad.h>
 #include <GLFW/glfw3.h>
 #include "math/math_funcs.h"
 #include "math/vector/vector2.h"
@@ -66,8 +66,8 @@ void drawOrbits(points_list* orbits_list[], int N){
             point *iterator = orbit->head;  
 
             // A way to limit the length of the orbit trails 
-            // int limit = iterator->count - 3000;
-            int limit = 0; // setting it to 0 makes the trails last forever
+            int limit = iterator->count - 3000;
+            // int limit = 0; // setting it to 0 makes the trails last forever
 
             while(iterator != NULL){
                 if(iterator->count - limit <= 0){
