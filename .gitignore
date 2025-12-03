@@ -4,3 +4,5 @@ out/sim
 init.yaml
 test
 shaders/test.*
+!test.frag
+!test.vert
