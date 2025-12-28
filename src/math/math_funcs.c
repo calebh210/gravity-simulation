@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <math.h>
 #include "math/math_funcs.h"
 #include "math/vector/vector2.h"
@@ -8,17 +9,27 @@
 // normalize values to something that opengl can render
 float normalize(double value, double min, double max) {
 
-    float norm = (float)(2.0 * (value - min) / (max - min) - 1.0);
+    float norm = (float)(value - min) / (max - min);
 
-    if(norm < 0.003f){ // I want to be able to atleast kind of see it
-        return 0.003f;
+    if(norm < 0.0002f){ // I want to be able to atleast kind of see it
+       return 0.0002f;
     }
 
-    return norm * 2; //inflate the values for visibility
+    if(norm > 1.0f){
+        return 1.0f;
+    } // clamping it to 1.0f
+
+    return norm; 
+}
+
+
+float denormalize(double value, double min, double max){
+    float original = value * (max - min) + min;
+    return original;
 }
 
 // to find the center of gravity
- vector2 find_cog(double m1,  vector2 pos1, double m2,  vector2 pos2){
+ vector2 find_cog(double m1, vector2 pos1, double m2,  vector2 pos2){
 
     vector2 barycenter;
 
@@ -36,6 +47,11 @@ float normalize(double value, double min, double max) {
 // Since this is applicable in cases where m1 >> m2, we can assume u ~= Gm1
 double standard_gravitational_parameter(double m1, double m2){
     return (G * (m1 + m2));
+}
+
+// take the mass (kg) of an object and determine its scharzchild radius
+double scharzchild_radius(double mass){
+    return (2 * G * mass) / (double)(c * c);
 }
 
 // RK4 Helper Function
@@ -78,7 +94,7 @@ vector2 f_v_rel_cog(double t, vector2 self_pos, vector2 other_pos, double mass_o
 
     double r = sqrt(r_vec.x * r_vec.x + r_vec.y * r_vec.y);
 
-    const double epsilon = 1e-5;
+    const float epsilon = 1e-5;
     if (r < epsilon) {
         return (vector2){0.0, 0.0};
     }
@@ -103,7 +119,7 @@ vector2 f_v_rel_cog(double t, vector2 self_pos, vector2 other_pos, double mass_o
 // Determine the acceleration on body i from N other bodies in the system
 // Newtonian Physics
 // N = NUM_BODIES
-vector2 f_v_nbody(double t, vector2 pos_self, two_d_body* bodies[], int index, int N){
+vector2 f_v_nbody(double t, vector2 pos_self, body_2d* bodies[], int index, int N){
 
     vector2 accel = {0,0}; // init accel
 
@@ -153,7 +169,7 @@ vector2 f_v_nbody(double t, vector2 pos_self, two_d_body* bodies[], int index, i
 // f_x() and f_v() are the functions that return the derivates of x and v (so v and a)
 // in our sim, f_v() = the accel calc, and f_x() is a step
 
-void coint_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2){
+void coint_runge_kutta(double t, double h, body_2d *body1, body_2d *body2){
 
     // pos, vel, and mass of b1
     vector2 x1 = body1->pos;
@@ -211,7 +227,7 @@ void coint_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2)
 // f_x() and f_v() are the functions that return the derivates of x and v (so v and a)
 // in our sim, f_v() = the accel calc, and f_x() is a step
 
-void runge_kutta(double t, double h, double m, two_d_body *b){
+void runge_kutta(double t, double h, double m, body_2d *b){
 
     vector2 x = b->pos;
     vector2 v = b->velocity; 
@@ -244,7 +260,7 @@ void runge_kutta(double t, double h, double m, two_d_body *b){
 }
 
 
-void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body2){
+void cog_ref_runge_kutta(double t, double h, body_2d *body1, body_2d *body2){
 
     // pos, vel, and mass of b1
     vector2 x1_init = body1->pos;
@@ -263,6 +279,7 @@ void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body
     (m1 * v1_init.y + m2 * v2_init.y) / (m1 + m2)
     };
     vector2 com = find_cog(m1, x1_init, m2, x2_init);
+
     vector2 x1 = { x1_init.x - com.x, x1_init.y - com.y };
     vector2 x2 = { x2_init.x - com.x, x2_init.y - com.y };
 
@@ -310,9 +327,9 @@ void cog_ref_runge_kutta(double t, double h, two_d_body *body1, two_d_body *body
 //Uses Runge-Kutta 4
 // t is start time
 // h is time step
-// bodies is an array of two_d_body pointers
+// bodies is an array of body_2d pointers
 // N is the number of bodies in the system
-void rk4_nbody(double t, double h, two_d_body* bodies[], int N){
+void rk4_nbody(double t, double h, body_2d* bodies[], int N){
 
     //Define the sub-steps as arrays to hold each body
     // kX_x is for position,kX_v is for velocity
@@ -323,7 +340,7 @@ void rk4_nbody(double t, double h, two_d_body* bodies[], int N){
     vector2 k4_x[N], k4_v[N];
 
     // temp bodies to use in RK4 steps
-    two_d_body* temp_bodies[N];
+    body_2d* temp_bodies[N];
 
     // Step 1 and Step 1 pre-calc
     for(int i = 0; i < N; i++){
@@ -336,7 +353,7 @@ void rk4_nbody(double t, double h, two_d_body* bodies[], int N){
         k1_x[i] = f_x(t,x[i], v[i]); 
         k1_v[i] = f_v_nbody(t,x[i],bodies,i,N);
 
-        temp_bodies[i] = malloc(sizeof(two_d_body)); //make a new space in memory for each one. this way I don't overwrite the real positions
+        temp_bodies[i] = malloc(sizeof(body_2d)); //make a new space in memory for each one. this way I don't overwrite the real positions
         *temp_bodies[i] = *bodies[i]; 
 
         temp_bodies[i]->pos = add_vec2s(x[i], scale_vec2(k1_x[i], h * 0.5));

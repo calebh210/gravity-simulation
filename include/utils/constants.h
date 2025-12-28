@@ -20,4 +20,8 @@ extern const double mass_earth;
 extern const double mass_sun;
 extern const double mass_sagA;
 
+//used for normalization
+extern const double SPACE_MIN;
+extern const double SPACE_MAX;
+
 #endif

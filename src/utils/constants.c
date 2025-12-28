@@ -12,3 +12,10 @@ const long c = 299792458;
 const double mass_earth = 5.97219E24;
 const double mass_sun = 1.9891E30;
 const double mass_sagA = 8.5E36;
+
+//used for normalization
+// should be configurable
+// const double SPACE_MIN = -1.5 * AU * 2;
+// const double SPACE_MAX = 1.5 * AU * 2; 
+const double SPACE_MIN = -AU;
+const double SPACE_MAX = AU;

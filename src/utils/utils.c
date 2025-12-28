@@ -10,17 +10,42 @@ points_list* init_list(){
         exit(1);
     }
     pL->head = NULL;
+    pL->count = 0;
     return pL;
 }
 
-// add new point P to head of list
+//add point p to the tail of the list
 void add_to_list(points_list *pL, point *p){
+    //check if the data is similar. if it's within a certain range, don't add it.
+
+    if(pL->head == NULL){
+        pL->head = p;
+        p->next = NULL;
+        pL->count++;
+        return;
+    }
+
+    point *iter = pL->head;
+
+    while(iter->next != NULL){
+        iter = iter->next;
+    }
+
+    iter->next = p;
+    p->next = NULL;
+    pL->count++;
+
+                
+}
+
+// add new point P to head of list
+void add_to_list_head(points_list *pL, point *p){
     //check if the data is similar. if it's within a certain range, don't add it.
     p->next = pL->head;
     if(pL->head == NULL){
-        p->count = 1;
+        pL->count = 1;
     } else {
-        p->count = pL->head->count + 1;
+        pL->count++;
     }
     pL->head = p;    
 }

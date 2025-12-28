@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
+#include <getopt.h>
 #include "utils/config_parser.h"
 #include "utils/structures.h"
 #include "physics/gravity.h"
 #include "math/math_funcs.h"
 #include "physics/cr3bp.h"
+#include "graphics/render3d.h"
 
 //Take the string argument for render_mode. Validate that it is correct
 // Return an int code to make it easier to work with
@@ -36,14 +38,19 @@ int main(int argc, char **argv){
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
     int NUM_BODIES = 2; // defaulting this to two seems correct?
+    bool is_3d = false;
 
-    while((opt = getopt(argc, argv, "dm:ht:n:")) != -1) 
+    while((opt = getopt(argc, argv, "dm:ht:n:3")) != -1) 
     { 
         switch(opt) 
         {
+
             case 'd':
                 DEBUG = true;
                 printf("Debugging Mode: Enabled\n");
+                break;
+            case '3':
+                is_3d = true;
                 break;
             case 'm': 
                 REF_FRAME = optarg;
@@ -53,8 +60,7 @@ int main(int argc, char **argv){
             case 't': 
                 TIME_DELTA = atof(optarg);
                 if(TIME_DELTA == 0.0){
-                    printf("Time Step set to 0.0. No time will pass. Closing simulation...\n");
-                    exit(0);
+                    printf("Time Step set to 0.0. No time will pass\n");
                 } 
                 printf("Time Step Value is: %f\n", TIME_DELTA); 
                 break; 
@@ -87,12 +93,30 @@ int main(int argc, char **argv){
     }
 
     // Create the NUM_BODIES array
-    two_d_body* bodies_array[NUM_BODIES];
+    //body_2d* bodies_array[NUM_BODIES];
+    body_t* bodies_array_config[NUM_BODIES];
 
     // Parse the config file (init.yaml)
     // Maybe I should make the option to pick this filename
-    parse_config_file(bodies_array, NUM_BODIES);
+    parse_config_file(bodies_array_config, is_3d, NUM_BODIES);
 
-    render(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
+
+    // Convert the generics into the proper type for rendering!
+    if(is_3d){
+        body_3d* bodies_array[NUM_BODIES];
+        for(int i = 0; i < NUM_BODIES; i++){
+            bodies_array[i] = bodies_array_config[i]->t.as_3d;
+        }
+        render3d(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
+
+    }else{
+        body_2d* bodies_array[NUM_BODIES];
+        for(int i = 0; i < NUM_BODIES; i++){
+            bodies_array[i] = bodies_array_config[i]->t.as_2d;
+        }
+        render(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
+
+    }
+
 
 }

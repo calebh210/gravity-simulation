@@ -6,14 +6,14 @@
 #include "utils/structures.h"
 
 //calculate angular velocity of cog ref frame between two bodies
-// double angular_velocity(two_d_body *b1, two_d_body *b2){
+// double angular_velocity(body_2d *b1, body_2d *b2){
 //     double u = standard_gravitational_parameter(b1->mass, b2->mass);
 //     double r = vec2_distance_between(b1->pos, b2->pos);
 //     return sqrt(u / pow(r, 3));
 // }
 
 //calculates relative x coords in the CR3BP
-// double cr3bp_x_coords(two_d_body *b1, two_d_body *b2){
+// double cr3bp_x_coords(body_2d *b1, body_2d *b2){
 //     double ratio1 = b1->mass / (b1->mass + b2->mass);
 //     double ratio2 = 1 - ratio1;
 //     double x1 = -ratio2 * r;
@@ -26,11 +26,11 @@
 This ONLY solves the position and velocity of T
 I still need to render the the equation of motion to update b1 and b2
 */
-void solve_cr3bp(two_d_body *b1, two_d_body *b2, two_d_body *t, double h){
+void solve_cr3bp(body_2d *b1, body_2d *b2, body_2d *t, double h){
 
     // //get local ones to paly with
-    // two_d_body *b1 = init_b1;
-    // two_d_body *b2 = init_b2;
+    // body_2d *b1 = init_b1;
+    // body_2d *b2 = init_b2;
 
 
     // get angular velocity
