@@ -9,6 +9,7 @@ GLAD_PATH = lib/glad_3_1_compat
 endif
 
 CC      = gcc
+
 # Add these to CFLAGS to check for memory issues -fsanitize=address -fsanitize=undefined
 CFLAGS  = -Wall -g -O3 -Iinclude -I$(GLAD_PATH)/include --std=$(C_VERSION) -g
 NVIDIA_GL_PATH = /usr/lib/nvidia

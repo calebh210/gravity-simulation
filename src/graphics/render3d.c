@@ -400,7 +400,12 @@ void render3d(body_3d* bodies_array[], int REF_FRAME_CODE, int TIME_DELTA, const
     camera *cam = malloc(sizeof(camera));
     vector3 camera_pos = {0,-0.3f,-5};
     cam->pos = camera_pos;
-    const float cameraSpeed = 0.00005f; 
+    const float cameraSpeedDefault = 0.00005f; 
+    float cameraSpeed = cameraSpeedDefault;
+
+    const float cameraRotSpeedDefault = 0.002f;
+    float cameraRotSpeed = cameraRotSpeedDefault;
+
     float angle_x, angle_y, angle_z;
     angle_x = angle_y = angle_z = 0.0f;
 
@@ -517,26 +522,45 @@ void render3d(body_3d* bodies_array[], int REF_FRAME_CODE, int TIME_DELTA, const
 
         // x rotation
         if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
-            angle_x += 0.002f;
+            angle_x += cameraRotSpeed;
         }
         if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){
-            angle_x -= 0.002f; 
+            angle_x -= cameraRotSpeed; 
         }
 
         // y rotation
         if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){
-            angle_y += 0.002f;
+            angle_y += cameraRotSpeed; 
         }
         if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS){
-            angle_y -= 0.002f; 
+            angle_y -= cameraRotSpeed; 
         }
 
         // this rotates along z axis
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
-            angle_z += 0.002f;
+            angle_z += cameraRotSpeed; 
         }
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS){
-            angle_z -= 0.002f; 
+            angle_z -= cameraRotSpeed; 
+        }
+
+        // this adjusts the camera speed
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
+            cameraSpeed = cameraSpeedDefault;
+            cameraRotSpeed = cameraRotSpeedDefault;
+            puts("Camera speed set to 1x");
+        }
+        // 2x speed
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS){
+            cameraSpeed = cameraSpeedDefault * 2;
+            cameraRotSpeed = cameraRotSpeedDefault * 2;
+            puts("Camera speed set to 2x");
+        }
+        // 5x speed
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS){
+            cameraSpeed = cameraSpeedDefault * 5;
+            cameraRotSpeed = cameraRotSpeedDefault * 5;
+            puts("Camera speed set to 5x");
         }
 
         float cx = cos(angle_x * 3.14159f / 180.0f);
