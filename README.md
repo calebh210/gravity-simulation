@@ -2,6 +2,8 @@
 
 Using the equations from [here](https://orbital-mechanics.space) as a guide.
 
+Project is licensed under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html#license-text).
+
 ## To Do
 - Add checking if init values make sense for "relative" frame
 - Black Holes? Raytracing?
