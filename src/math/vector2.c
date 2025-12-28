@@ -1,5 +1,6 @@
 #include "math/vector/vector2.h"
 #include <math.h>
+#include "utils/constants.h"
 
 // normalize a vector2 to something that opengl can render
 vector2 normalize_vec2(vector2 vec, double min, double max) {

@@ -2,19 +2,18 @@
 #include <math.h>
 #include <stdlib.h>
 #include <glad.h>
+#include <unistd.h>
 #include <GLFW/glfw3.h>
 #include "math/math_funcs.h"
 #include "math/vector/vector2.h"
+#include "math/vector/vector4.h"
+#include "math/matrix/matrix4.h"
 #include "physics/gravity.h"
 #include "physics/cr3bp.h"
-
-
-double gravity_equation(double m1, double m2, double r);
-double gravity_acceleration(double M, double r);
-
+#include "utils/shaders_parser.h"
 
 // find the center of gravity from a N-body system
-vector2 find_nbody_cog(two_d_body* bodies[], int NUM_BODIES){
+vector2 find_nbody_cog(body_2d* bodies[], int NUM_BODIES){
     
     // sum up the mass of the bodies
     double total_m = 0;
@@ -31,136 +30,252 @@ vector2 find_nbody_cog(two_d_body* bodies[], int NUM_BODIES){
 }
 
 // Function to draw a circle at (cx, cy) with radius 
-void drawCircle(vector2 c, float r, int num_segments) {
-    float cx = c.x;
-    float cy = c.y;
-    glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(cx, cy);  // Center of circle
+double* drawCircle(vector2 c, float r, int num_segments) {
 
+    // Center of circle
+    double cx = c.x;
+    double cy = c.y;
+
+    int num_vertices = (num_segments+1) * 3;
+
+    int idx = 0;
+
+    double *vertices = malloc(num_vertices * sizeof(double));
+    
     for (int i = 0; i <= num_segments; i++) {
         float angle = 2.0f * PI * i / num_segments;
-        float x = cx + cosf(angle) * r;
-        float y = cy + sinf(angle) * r;
-        glVertex2f(x, y);
+        double x = cx + cosf(angle) * r;
+        double y = cy + sinf(angle) * r;
+
+        vertices[idx] = x;
+        vertices[idx+1] = y;
+        vertices[idx+2] = 0.0;
+
+        idx += 3;
+
     }
 
-    glEnd();
+    return vertices;
+
 }
 
+void initBodies(body_2d* bodies_array[], int NUM_BODIES){
+  
+    for(int i=0; i < NUM_BODIES ;i++){
 
-//trying to draw an orbit path
-//use while to iterate over the points in the linked list, and draw them
-// this never clears the old points, and may cause memory issues
-void drawOrbits(points_list* orbits_list[], int N){
+        body_2d* b = bodies_array[i];
 
-    glBegin(GL_POINTS);
+        // Init the orbit list for each body
+        bodies_array[i]->orbit = init_list();
+        initOrbit(bodies_array[i]->orbit);
 
-        glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
+        glGenBuffers( 1, &b->vbo );
+        glGenVertexArrays( 1, &b->vao );
 
-        for(int i = 0; i < N; i++){
+        vector2 coords = normalize_vec2(b->pos,SPACE_MIN,SPACE_MAX);
 
-            points_list *orbit = orbits_list[i];
+        int num_segments = 30; // How many segments in da circles
+        double* points = drawCircle(coords, normalize(b->radius,0,SPACE_MAX), num_segments);
 
-            point *iterator = orbit->head;  
+        glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
+        glBufferData( GL_ARRAY_BUFFER, num_segments * 3 * sizeof( double ), points, GL_STATIC_DRAW );
 
-            // A way to limit the length of the orbit trails 
-            int limit = iterator->count - 3000;
-            // int limit = 0; // setting it to 0 makes the trails last forever
-
-            while(iterator != NULL){
-                if(iterator->count - limit <= 0){
-                    break;
-                }
-                glVertex2f(iterator->pos.x, iterator->pos.y);
-                iterator = iterator->next;
-            }
-        }
-
-    glEnd();
-}
-
-// Draw the bodies in bodies_array at their updated position
-// N is the number of bodies
-void drawBodies(two_d_body* bodies_array[], points_list* orbits_list[], int N){
-
-    //used for normalization
-    double min = -1.5 * AU;
-    double max = 1.5 * AU;   
-
-    for(int i=0; i < N;i++){
-        glColor3f(0.8f, 0.7f, 0.1f);  
-        vector2 coords = normalize_vec2(bodies_array[i]->pos,min,max);
-        drawCircle(coords, normalize(bodies_array[i]->radius,min,max), 100);
-
-        // updateOrbits
-        // Since I've already calculated the coords here, it makes sense to update the orbit line here too
-        updateOrbits(orbits_list[i], coords);
+        glBindVertexArray( b->vao );
+        glEnableVertexAttribArray( 0 );
+        glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
+        glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, 0, NULL );
+    
     }
 
 }
 
-void updateOrbits(points_list* orbits_list, vector2 coords){
+void initOrbit(points_list* orbit){
+
+    //this can overflow
+    int ORBIT_LIMIT = 10000;
+    
+    glGenBuffers( 1, &orbit->vbo );
+    glGenVertexArrays( 1, &orbit->vao );
+
+    glBindVertexArray(orbit->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, orbit->vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * ORBIT_LIMIT,
+                 NULL, GL_DYNAMIC_DRAW);
+
+    // Consider a way to use GL_FLOAT to speed this up
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
+    glEnableVertexAttribArray(0);
+}
+
+void updateOrbits(points_list* orbit, vector3 coords){
+
+    //this can overflow
+    int ORBIT_LIMIT = 10000;
 
     point *new_point = ( point * )malloc(sizeof(point));
     new_point->pos = coords;
-    add_to_list(orbits_list, new_point);
+    new_point->next = NULL;
 
-}
+    add_to_list(orbit, new_point);
 
-// Free the memory reserved in an orbits list
-void freeOrbitsList(points_list* orbits_list[], int N){
-    for(int i = 0; i < N; i++){
-        free_list(orbits_list[i]);
+    //Check the buffer isn't being overflown
+    // Stop drawing for now, eventually overwrite old ones
+    if(orbit->count >= ORBIT_LIMIT){
+        return;
     }
 
-    puts("\nCorrectly freed all orbits list memory");
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, orbit->vbo);
+    // Add data to the VBO
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vector3) * (orbit->count - 1), sizeof(vector3), &new_point->pos);
+
 }
 
-int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NUM_BODIES, bool DEBUG) {
+//trying to draw an orbit path
+void drawOrbit(const points_list* orbit){
+    glBindVertexArray(orbit->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, orbit->vbo);
+    glDrawArrays(GL_POINTS, 0, orbit->count);
+}
+
+
+//https://antongerdelan.net/opengl/hellotriangle.html
+int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NUM_BODIES, bool DEBUG) {
+
+
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
-        return EXIT_FAILURE;
+        return 1;
     }
+
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 6 );
+    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
+    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
     GLFWwindow* window = glfwCreateWindow(1600, 900, "OpenGL Window", NULL, NULL);
     if (!window) {
         fprintf(stderr, "Failed to create GLFW window\n");
         glfwTerminate();
-        return EXIT_FAILURE;
+        return 1;
     }
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);        
+
     if (!gladLoadGL()) {
         fprintf(stderr, "Failed to initialize GLAD\n");
         glfwDestroyWindow(window);
         glfwTerminate();
-        return EXIT_FAILURE;
+        return 1;
     }
 
-    // Set viewport and projection to match OpenGL's default -1 to 1 coordinate system
-    glViewport(0, 0, 1600, 900);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);  // 2D orthographic projection
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // SETUP THE SHADERS
+    // yes I know it's hardcoded.... I don't care
+    const char* fpath = "shaders/circle.vert";
 
+    char* vertex_shader = parse_shader_file(fpath);
+
+    const char* frag_path = "shaders/circle.frag";
+    char* fragment_shader = parse_shader_file(frag_path);
+
+    GLuint vs = glCreateShader( GL_VERTEX_SHADER );
+    glShaderSource( vs, 1, (const GLchar**)&vertex_shader, NULL );
+    glCompileShader( vs );
+    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER );
+    glShaderSource( fs, 1, (const GLchar**)&fragment_shader, NULL );
+    glCompileShader( fs );
+
+    GLuint shader_program = glCreateProgram();
+    glAttachShader( shader_program, fs );
+    glAttachShader( shader_program, vs );
+    glLinkProgram( shader_program );
+
+    // The orbit shaders
+    // I should maybe tuck this into a function eventually
+    const char* orbit_frag = "shaders/orbit.frag";
+    char* orbit_frag_shader = parse_shader_file(orbit_frag);
+
+    const char* orbit_vertex = "shaders/orbit.vert";
+    char* orbit_vert_shader = parse_shader_file(orbit_vertex);
+
+    GLuint orbit_vs = glCreateShader( GL_VERTEX_SHADER );
+    glShaderSource( orbit_vs, 1, (const GLchar**)&orbit_vert_shader, NULL );
+    glCompileShader( orbit_vs );
+
+    GLuint orbit_fs = glCreateShader( GL_FRAGMENT_SHADER );
+    glShaderSource( orbit_fs, 1, (const GLchar**)&orbit_frag_shader, NULL );
+    glCompileShader( orbit_fs );
+
+    GLuint orbit_shader = glCreateProgram();
+    glAttachShader( orbit_shader, orbit_fs );
+    glAttachShader( orbit_shader, orbit_vs );
+    glLinkProgram( orbit_shader );
+
+
+    //Projection Matrix
+    // This should be useful for 3D (when we get there!)
+    float left = -1.0f, right = 1.0f;
+    float bottom = -1.0f, top = 1.0f;
+    float nearPlane = -1.0f, farPlane = 1.0f;
+
+    float projection[16] = {
+        2.0f/(right-left), 0.0f, 0.0f, 0.0f,                       
+        0.0f, 2.0f/(top-bottom), 0.0f, 0.0f,                      
+        0.0f, 0.0f, -2.0f/(farPlane-nearPlane), 0.0f,            
+        -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(farPlane+nearPlane)/(farPlane-nearPlane), 1.0f 
+    };
+
+    // for bodies
+    GLuint projLoc = glGetUniformLocation(shader_program, "projection");
+    glUseProgram(shader_program);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
+
+    //for orbits
+    GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
+    glUseProgram(orbit_shader);
+    glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
+
+    float m[] = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    //View Matrix (just an identity for now)
+    GLuint viewLoc = glGetUniformLocation(shader_program, "view");
+    glUseProgram(shader_program);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, m);
+
+    //for orbits
+    GLuint viewLoc2 = glGetUniformLocation(orbit_shader, "view");
+    glUseProgram(orbit_shader);
+    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, m);
 
     // used to measure frametime
     double lastTime = glfwGetTime();
     int nbFrames = 0;
-
     int run = 0;  
 
-    //list of points where the planet was previously. used to draw orbits
-    points_list* orbits_list[NUM_BODIES];
-    for(int i = 0; i < NUM_BODIES; i++){
-        orbits_list[i] = init_list();
+    //init the bodies here
+    initBodies(bodies_array, NUM_BODIES);
+
+    // Setup the title
+    char title[256];
+    sprintf( title, "Simulation Window");
+    glfwSetWindowTitle(window, title );
+
+
+    // This is sorta-temp code while I figure out how I want to do the translations long-term
+    vector2 init_bodies_pos[NUM_BODIES];
+    for(int i=0; i < NUM_BODIES; i++){
+        init_bodies_pos[i] = bodies_array[i]->pos;
     }
 
+   
+            
     // Render loop
     // -1 is defined as the infinite run condition
    while (!glfwWindowShouldClose(window) && (RUN_LIMIT == -1 || run <= RUN_LIMIT)) {
@@ -172,14 +287,19 @@ int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int
         if ( currentTime - lastTime >= 1.0 && DEBUG){ // If last prinf() was more than 1 sec ago
             // printf and reset timer
             // debug printf statements
-
             printf("\nCurrent Frame = %d", run);
             printf("\n%f ms/frame", 1000.0/(double)(nbFrames));
             printf("\nRendering With: %s", glGetString(GL_RENDERER));
             for(int i=0;i<NUM_BODIES;i++){
-                printf("\n B%d Velocity = {%lf, %lf}", i, bodies_array[i]->velocity.x, bodies_array[i]->velocity.y);
-                printf("\n B%d Position = {%lf, %lf}", i, bodies_array[i]->pos.x, bodies_array[i]->pos.y);
+                printf("\n B%d Velocity = {%f, %f}", i, bodies_array[i]->velocity.x, bodies_array[i]->velocity.y);
+                printf("\n B%d Position = {%f, %f}", i, bodies_array[i]->pos.x, bodies_array[i]->pos.y);
             }
+
+            // FPS Counter
+            double fps = (double)nbFrames / 1.0;
+            char tmp[256];
+            sprintf( tmp, "FPS %.2lf", fps );
+            glfwSetWindowTitle(window, tmp );
 
             nbFrames = 0;
             lastTime += 1.0;
@@ -209,151 +329,99 @@ int render(two_d_body* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int
             exit(1); // should never be reached
         }
 
-        // Draw the bodies in OpenGL
-        drawBodies(bodies_array, orbits_list, NUM_BODIES);
 
-        // Draw the orbits in OpenGL
-        drawOrbits(orbits_list, NUM_BODIES);
-
-        glfwSwapBuffers(window);
-
+        // Update window events.
         glfwPollEvents();
+        
+        // Wipe the drawing surface clear.
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-        //unreliable fps cap
-        glfwWaitEventsTimeout(0.008);
+        // Put the shader program, and the VAO, in focus in OpenGL's state machine.
+        glUseProgram( shader_program ); 
 
-        // Clear the screen
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        // Iterate through all bodies and get their VAOs
+        for(int i=0;i<NUM_BODIES;i++){ 
+
+            body_2d* b = bodies_array[i];
+
+            int modelLocationBody = glGetUniformLocation(shader_program, "model");
+            int modelLocationOrbit = glGetUniformLocation(orbit_shader, "model");
+
+            if (modelLocationOrbit == -1){
+                printf("failed to get model from orbit shader");
+            }
+
+            // orbits updating
+            // use a vector3 for future-proofing, but set z to 0.0f cause its 2d
+
+            // Completely arbitrary number I made up to not tank framerate with the orbit lines
+            // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
+            // where N is the ORBIT_SAMPLING var
+            int ORBIT_SAMPLING = 500;
+            if(run % ORBIT_SAMPLING == 0){
+                vector2 coord_pos = normalize_vec2(b->pos, SPACE_MIN, SPACE_MAX);
+                vector3 coord = {coord_pos.x, coord_pos.y, 0.0f};
+                updateOrbits(b->orbit, coord);
+
+            }
+            matrix4 identity = {
+                {1.0, 0.0, 0.0, 0.0},
+                {0.0, 1.0, 0.0, 0.0},
+                {0.0, 0.0, 1.0, 0.0},
+                {0.0, 0.0, 0.0, 1.0}
+            };
+
+            glUseProgram( orbit_shader );
+            glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)identity);
+            drawOrbit(b->orbit);
+            
+
+            // So these transformations use relative coords, so I'm storing the init positions then just subtracting from current
+            // This way I don't have the re-write VBOs and its faster, but it feels...ugly
+            vector2 n_pos = normalize_vec2(subtract_vec2s(b->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
+
+            matrix4 m = {
+                {1.0, 0.0, 0.0, n_pos.x},
+                {0.0, 1.0, 0.0, n_pos.y},
+                {0.0, 0.0, 1.0, 0.0},
+                {0.0, 0.0, 0.0, 1.0}
+            };
+
+            glUseProgram( shader_program );
+            glUniformMatrix4fv(modelLocationBody, 1, GL_TRUE, (const GLfloat *)m);
+
+            //get the color
+            int objectColorLoc = glGetUniformLocation(shader_program, "objectColor");
+            glUniform3f(objectColorLoc, b->color.r, b->color.g, b->color.b);
+
+            glBindVertexArray( bodies_array[i]->vao );
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 30);
+        }
+        
+        glfwSwapBuffers( window);
         
         run++;
     }
 
-
-
-
     // Cleanup
     glfwDestroyWindow(window);
     glfwTerminate();
-    freeOrbitsList(orbits_list, NUM_BODIES);
+    // glDeleteBuffers(1, &vbo);
+    // glDeleteVertexArrays(1, &vao);
+
+    for(int i = 0; i < NUM_BODIES; i++){
+        free_list(bodies_array[i]->orbit);
+    }
 
     puts("\nSimulation Ending...");
     return EXIT_SUCCESS;
 }
 
 
-double gravity_equation(double m1, double m2, double r){
-    double F; // gravitational force
-    // long m1; // mass one in KG
-    // long m2; // mass two in KG
-    // double r; //distance between m1 and m2 in meters
-    // G is defined in constant
-
-    F = G * ((m1 * m2) / (r * r));
-
-    printf("%.10lf \n", F); // holy decimal precision!
-
-    return F;
-}
-
-
-// This function does g = GM/r^2
-double gravity_acceleration(double M, double r){
-    double g; // feel like this should be a double for edge cases
-
-    g = (G * M) / (r * r);
-
-    printf("%lf \n", g);
-    
-    return g;
-
-}
-
-
-
-// For simplicity, I'm implementing this in 2D for now, thus ignoring the Z axis
-// this returns the center of mass between the objects as a 2d vector
-void equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
-    //double R; //this is the absolute gravitational accel between the two, and our result
-
-    double m1, m2; //mass of the object
-    double x1, x2, y1, y2; //x and y positions of the object
-    double dx_1_0, dy_1_0, dx_2_0, dy_2_0; //initial velocities 
-
-    m1 = b1->mass;
-    m2 = b2->mass;
-
-    x1 = b1->pos.x;
-    x2 = b2->pos.x;
-
-    y1 = b1->pos.y;
-    y2 = b2->pos.y;
-
-    dx_1_0 = b1->velocity.x;
-    dy_1_0 = b1->velocity.y; 
-
-    dx_2_0 = b2->velocity.x;
-    dy_2_0 = b2->velocity.y;
-
-
-    // vector math !!
-    // double r =  sqrt(abs(((x2 - x1) * (x2-x1))) + abs(((y2-y1) * (y2-y1))) );
-    double r = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
-
-
-    if(isnan(r)){
-        printf("ERROR: r IS NAN. ABORTING...\n");
-        exit(1);
-    }
-
-    if(r < 1){
-        printf("\n The objects collided");
-        exit(0);
-    }
-
-    // double dot is accel
-    // dot is velocity
-
-    // Solving
-
-    double ddx_1_0 = G * m2 * (x2 - x1)/(r * r * r); // double dot x for b1, the _0 indicates initial position
-    double ddy_1_0 = G * m2 * (y2 - y1)/(r * r * r);
-
-    double ddx_2_0 = G * m1 * (x1 - x2)/(r * r * r);
-    double ddy_2_0 = G * m1 * (y1 - y2)/(r * r * r);
-
-
-    //this is in seconds
-
-    // calculate the current velocities
-    double dx_1_1 = ddx_1_0 * delta_t + dx_1_0;
-    double dy_1_1 = ddy_1_0 * delta_t + dy_1_0;
-    double dx_2_1 = ddx_2_0 * delta_t + dx_2_0;
-    double dy_2_1 = ddy_2_0 * delta_t + dy_2_0;
-
-
-    // calculate positions
-    //CHECK THIS EQUATION
-    double x_1_1 = (dx_1_1 * delta_t) + x1;
-    double y_1_1 = dy_1_1 * delta_t + y1;
-    double x_2_1 = dx_2_1 * delta_t + x2;
-    double y_2_1 = dy_2_1 * delta_t + y2;
-
-    b1->pos.x = x_1_1;
-    b1->pos.y = y_1_1;
-    b1->velocity.x = dx_1_1;
-    b1->velocity.y = dy_1_1;
-
-    b2->pos.x = x_2_1;
-    b2->pos.y = y_2_1;
-    b2->velocity.x = dx_2_1;
-    b2->velocity.y = dy_2_1;
-
-}
-
 // equation of motion in reference frame attached to b1, where mass b1 >> b2
 // still using 2d equation
-void relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t){
+void relative_equation_of_motion( body_2d *b1,  body_2d *b2, float delta_t){
 
     double x = b2->pos.x;
     double y = b2->pos.y;
@@ -370,7 +438,7 @@ void relative_equation_of_motion( two_d_body *b1,  two_d_body *b2, float delta_t
 
 }
 
-void rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
+void rk4_equation_of_motion( body_2d *b1, body_2d *b2, float delta_t){
 
     coint_runge_kutta(0, delta_t, b1, b2);
 
@@ -384,7 +452,7 @@ void rk4_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
 }
 
 //Find the COG, and run calcualtions relative to that
-void rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delta_t){
+void rk4_relative_equation_of_motion( body_2d *b1, body_2d *b2, float delta_t){
 
     cog_ref_runge_kutta(0, delta_t, b1, b2);
 
@@ -396,8 +464,3 @@ void rk4_relative_equation_of_motion( two_d_body *b1, two_d_body *b2, float delt
     }
 }
 
-
-// take the mass (kg) of an object and determine its scharzchild radius
-double scharzchild_radius(double mass){
-    return (2 * G * mass) / (double)(c * c);
-}

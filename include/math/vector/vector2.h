@@ -6,6 +6,7 @@ typedef struct
 {
     double x; 
     double y;
+    
 } vector2;
 
 // normalize a two_d_vectpr to something that opengl can render
