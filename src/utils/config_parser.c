@@ -276,7 +276,6 @@ void parse_config_file(body_t* bodies_array[], bool is_3d, int NUM_BODIES){
 
             break;
 
-        default:
         }
         if(event.type != YAML_STREAM_END_EVENT)
             yaml_event_delete(&event);

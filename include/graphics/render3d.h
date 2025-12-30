@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <glad.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <GLFW/glfw3.h>
 #include "utils/utils.h"
 #include "utils/structures.h"
@@ -26,10 +26,9 @@ GLFWwindow* init_render();
 // init shader object
 GLuint init_shaders();
 
-void init_3d_bodies(body_3d* bodies_array[], int NUM_BODIES);
+void init_3d_bodies(body_3d* bodies_array[], int num_bodies);
 
 // render the 3d scene
-void render3d(body_3d* bodies_array[], int REF_FRAME_CODE, int TIME_DELTA, const int NUM_BODIES, const bool DEBUG);
-
+void render3d(body_3d* bodies_array[], int ref_frame_code, int timeskip, const int num_bodies, const bool debug);
 
 #endif

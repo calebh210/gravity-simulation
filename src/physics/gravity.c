@@ -13,12 +13,12 @@
 #include "utils/shaders_parser.h"
 
 // find the center of gravity from a N-body system
-vector2 find_nbody_cog(body_2d* bodies[], int NUM_BODIES){
+vector2 find_nbody_cog(body_2d* bodies[], int num_bodies){
     
     // sum up the mass of the bodies
     double total_m = 0;
     vector2 pos = {0.0, 0.0};
-    for(int i = 0; i < NUM_BODIES; i++){
+    for(int i = 0; i < num_bodies; i++){
         total_m += bodies[i]->mass;
         vector2 w = scale_vec2(bodies[i]->pos, bodies[i]->mass);
         pos = add_vec2s(pos, w);
@@ -59,9 +59,9 @@ double* drawCircle(vector2 c, float r, int num_segments) {
 
 }
 
-void initBodies(body_2d* bodies_array[], int NUM_BODIES){
+void initBodies(body_2d* bodies_array[], int num_bodies){
   
-    for(int i=0; i < NUM_BODIES ;i++){
+    for(int i=0; i < num_bodies ;i++){
 
         body_2d* b = bodies_array[i];
 
@@ -141,7 +141,7 @@ void drawOrbit(const points_list* orbit){
 
 
 //https://antongerdelan.net/opengl/hellotriangle.html
-int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NUM_BODIES, bool DEBUG) {
+int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_bodies, bool debug) {
 
 
     if (!glfwInit()) {
@@ -260,7 +260,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
     int run = 0;  
 
     //init the bodies here
-    initBodies(bodies_array, NUM_BODIES);
+    initBodies(bodies_array, num_bodies);
 
     // Setup the title
     char title[256];
@@ -269,8 +269,8 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
 
 
     // This is sorta-temp code while I figure out how I want to do the translations long-term
-    vector2 init_bodies_pos[NUM_BODIES];
-    for(int i=0; i < NUM_BODIES; i++){
+    vector2 init_bodies_pos[num_bodies];
+    for(int i=0; i < num_bodies; i++){
         init_bodies_pos[i] = bodies_array[i]->pos;
     }
 
@@ -284,13 +284,13 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
         double currentTime = glfwGetTime();
         nbFrames++;
 
-        if ( currentTime - lastTime >= 1.0 && DEBUG){ // If last prinf() was more than 1 sec ago
+        if ( currentTime - lastTime >= 1.0 && debug){ // If last prinf() was more than 1 sec ago
             // printf and reset timer
             // debug printf statements
             printf("\nCurrent Frame = %d", run);
             printf("\n%f ms/frame", 1000.0/(double)(nbFrames));
             printf("\nRendering With: %s", glGetString(GL_RENDERER));
-            for(int i=0;i<NUM_BODIES;i++){
+            for(int i=0;i<num_bodies;i++){
                 printf("\n B%d Velocity = {%f, %f}", i, bodies_array[i]->velocity.x, bodies_array[i]->velocity.y);
                 printf("\n B%d Position = {%f, %f}", i, bodies_array[i]->pos.x, bodies_array[i]->pos.y);
             }
@@ -306,23 +306,23 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
         }
 
         if(REF_FRAME_CODE == 100){
-            rk4_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+            rk4_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
         }else if(REF_FRAME_CODE == 101){
-           rk4_relative_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+           rk4_relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
         }else if(REF_FRAME_CODE == 102){
-            relative_equation_of_motion(bodies_array[0], bodies_array[1], TIME_DELTA);
+            relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
         }else if(REF_FRAME_CODE == 103){
-            solve_cr3bp(bodies_array[0], bodies_array[1], bodies_array[2], TIME_DELTA);
+            solve_cr3bp(bodies_array[0], bodies_array[1], bodies_array[2], timeskip);
 
         }else if(REF_FRAME_CODE == 200){
-            rk4_nbody(0, TIME_DELTA, bodies_array, NUM_BODIES);
+            rk4_nbody(0, timeskip, bodies_array, num_bodies);
 
-            // vector2 cent_of_m = find_nbody_cog(bodies_array, NUM_BODIES);
+            // vector2 cent_of_m = find_nbody_cog(bodies_array, num_bodies);
 
         }else{
             
@@ -341,7 +341,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
         glUseProgram( shader_program ); 
 
         // Iterate through all bodies and get their VAOs
-        for(int i=0;i<NUM_BODIES;i++){ 
+        for(int i=0;i<num_bodies;i++){ 
 
             body_2d* b = bodies_array[i];
 
@@ -410,7 +410,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float TIME_DELTA, int NU
     // glDeleteBuffers(1, &vbo);
     // glDeleteVertexArrays(1, &vao);
 
-    for(int i = 0; i < NUM_BODIES; i++){
+    for(int i = 0; i < num_bodies; i++){
         free_list(bodies_array[i]->orbit);
     }
 

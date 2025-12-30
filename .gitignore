@@ -1,8 +1,6 @@
 build/*
+build
 out/sim
 *.out
 init.yaml
 test
-shaders/test.*
-!test.frag
-!test.vert

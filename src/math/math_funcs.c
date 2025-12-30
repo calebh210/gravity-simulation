@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <unistd.h>
 #include <math.h>
 #include "math/math_funcs.h"
 #include "math/vector/vector2.h"

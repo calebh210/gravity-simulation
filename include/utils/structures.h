@@ -3,7 +3,6 @@
 
 #include "math/vector/vector2.h"
 #include "math/vector/vector3.h"
-#include <glad.h>
 #include "utils/utils.h"
 
 typedef struct rgb
