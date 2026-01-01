@@ -1,15 +1,14 @@
-// Two Orbiting Black Holes:
-
+#Two Orbiting Black Holes:
 bodies:
   - Name: Body1
     Mass: 90.9891E34
     Radius: 695700E3
     Position: 0,0,0
     Velocity: 20E3,0E3, 0E3
-    Color: ff1320
+    Color: 000000
   - Name: Body2
     Mass: 50.9891E34
     Radius: 695700E3
     Position: -549597870700, 0, 54959787070
     Velocity: -300E3,-50E3, 4000E3
-    Color: 0000FF
+    Color: 000000
