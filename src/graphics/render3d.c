@@ -614,7 +614,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         vector3 cameraDirection = vec3_unit_vector(subtract_vec3s(cam->pos, cameraTarget));
         vector3 cameraRight = vec3_unit_vector(cross_product(up, cameraDirection));
         vector3 cameraUp = cross_product(cameraDirection, cameraRight);
-
         // View  Rotation Matrix Matrix
         matrix4 view = {
             {cameraRight.x, cameraUp.x, cameraDirection.x, 0},
