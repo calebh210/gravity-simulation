@@ -442,11 +442,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) display_legend = true;
         if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) display_legend = false;
 
+
         if(display_legend){
 
-            char text[] = "Legend (WIP)";
-            int text_len = strlen(text);
-            render_text(ft, text, text_len, (vector2){300.0, 400.0}, 0.5f, (vector3){1.0f, 0.3f, 0.0f} );
+            draw_legend(ft, cam, bodies_array, nbFrames);
 
         }
 
