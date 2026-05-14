@@ -74,7 +74,7 @@ void initBodies(body_2d* bodies_array[], int num_bodies){
 }
 
 // Main render loop for 2D rendering
-int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_bodies, bool debug) {
+int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timeskip, int num_bodies, bool debug) {
 
 
     if (!glfwInit()) {
@@ -218,21 +218,21 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
             lastTime += 1.0;
         }
 
-        if(REF_FRAME_CODE == 100){
+        if(REF_FRAME == INERTIAL){
             rk4_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
-        }else if(REF_FRAME_CODE == 101){
+        }else if(REF_FRAME == RELATIVE){
            rk4_relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
-        }else if(REF_FRAME_CODE == 102){
+        }else if(REF_FRAME == CENTER_OF_GRAVITY){
             relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
-        }else if(REF_FRAME_CODE == 103){
+        }else if(REF_FRAME == CR3BP){
             solve_cr3bp(bodies_array[0], bodies_array[1], bodies_array[2], timeskip);
 
-        }else if(REF_FRAME_CODE == 200){
+        }else if(REF_FRAME == N_BODY){
             rk4_nbody(0, timeskip, bodies_array, num_bodies);
 
             // vector2 cent_of_m = find_nbody_cog(bodies_array, num_bodies);

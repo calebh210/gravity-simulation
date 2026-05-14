@@ -55,6 +55,14 @@ enum BODY_DIMENSIONS {
     BODY_3D
 };
 
+enum REFERENCE_FRAME {
+    INERTIAL,
+    CENTER_OF_GRAVITY,
+    RELATIVE,
+    CR3BP,
+    N_BODY
+};
+
 // this "generic" body object might help
 typedef struct body_t
 {

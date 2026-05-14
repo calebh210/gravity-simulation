@@ -378,7 +378,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     int num_bodies = config_settings->num_bodies;
     bool debug = config_settings->debug;
     float timeskip = config_settings->time_delta;
-    int ref_frame_code = config_settings->ref_frame_code;
 
     //start glfw and glad
     GLFWwindow* window = init_render();
@@ -658,10 +657,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         }
 
         // This is the main equation driving the physics
-        if(ref_frame_code == 101){
+        if(config_settings->ref_frame == CENTER_OF_GRAVITY){
             cog_ref_runge_kutta_3d(0, timeskip, bodies_array[0], bodies_array[1]);
 
-        }else if(ref_frame_code == 200){
+        }else if(config_settings->ref_frame == N_BODY){
             rk4_nbody_3d(0, timeskip, bodies_array, num_bodies);
 
         }else{
