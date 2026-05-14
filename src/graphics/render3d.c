@@ -438,10 +438,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         }
 
-        // TODO: Make this cleaner
-        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) display_legend = true;
-        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) display_legend = false;
 
+        // TODO: Move this into controls.c
+        static bool o_was_pressed = false;
+        bool o_pressed = glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS;
+        if (o_pressed && !o_was_pressed){
+            display_legend = !display_legend;
+        }
+        o_was_pressed = o_pressed;
 
         if(display_legend){
 
