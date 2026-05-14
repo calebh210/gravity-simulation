@@ -651,7 +651,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         }
         o_was_pressed = o_pressed;
 
-
         if(display_legend){
 
             draw_legend(ft, cam, bodies_array, nbFrames);
