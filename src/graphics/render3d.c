@@ -1,6 +1,7 @@
 #include <string.h>
 #include "graphics/orbits.h"
 #include "graphics/render3d.h"
+#include "graphics/grid.h"
 #include "graphics/controls.h"
 #include "graphics/legend.h"
 #include "math/math_funcs.h"
@@ -229,137 +230,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
 
 }
 
-GLuint init_grid(Grid *g){
-
-    GLuint vao, vbo;
-
-    glGenVertexArrays( 1, &vao );
-    g->vao = vao;
-    glBindVertexArray( g->vao );
-
-    glGenBuffers( 1, &vbo );
-    g->vbo = vbo;
-
-
-    // I admit, the generation code isn't the cleanest, but it works ¯\_(ツ)_/¯
-    // I need to look into an index buffer, a lot of this is re-used
-
-    // The "step" is how far apart to draw each row/col
-    // x and z define the bounds to draw
-    // y is hardcoded to 0 as the reference point
-    // CHANGING THESE REQUIRES A MANUAL CHANGE TO glDrawArrays() in draw_grid!
-    float step = 0.05f;
-
-    float x_init = -5.0f;
-    float z_init = -5.0f;
-
-    int rows = (int)ceilf((fabsf(x_init) + fabsf(z_init)) / step);
-
-    int vertices = (2 * rows * rows) * 2;
-
-    vector3* points = malloc(vertices * sizeof(vector3));
-
-    int index = 0;
-
-    for(int i=0; i < rows; i++){ 
-        float x = x_init + (i * step);
-        for(int j=0; j < rows; j++){
-            float z = z_init + (j * step);
-            points[index++] = (vector3){ x, 0.0f, z};
-            z = z + step;
-            points[index++] = (vector3){ x, 0.0f, z};
-        }
-    }
-
-    for(int i=0; i < rows; i++){ 
-        float z = z_init + (i * step);
-        for(int j=0; j < rows; j++){
-            float x = x_init + (j * step);
-            points[index++] = (vector3){ x, 0.0f, z};
-            x = x + step;
-            points[index++] = (vector3){ x, 0.0f, z};
-        }
-    }
-
-    glBindBuffer( GL_ARRAY_BUFFER, g->vbo );
-    glBufferData( GL_ARRAY_BUFFER, vertices * sizeof(vector3), points, GL_STATIC_DRAW );
-
-    glEnableVertexAttribArray( 0 );
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
-    glBindVertexArray(0);
-
-    free(points); // loaded in the vbo, doesn't need to be on heap anymore
-
-    // Shader init
-    const char* vert_path = "shaders/grid.vert";
-    char* vertex_shader = parse_shader_file(vert_path);
-
-    const char* frag_path = "shaders/grid.frag";
-    char* fragment_shader = parse_shader_file(frag_path);
-
-    // vert shader setup / check
-    GLuint vs = glCreateShader( GL_VERTEX_SHADER );
-    glShaderSource( vs, 1, (const GLchar**)&vertex_shader, NULL );
-    glCompileShader( vs );
-    free(vertex_shader);
-
-    GLint success;
-
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE)
-    { 
-        printf("Failed to compile vertex shader.\n");
-        return -1;
-    }
-
-    // frag shader setup / check
-    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER );
-    glShaderSource( fs, 1, (const GLchar**)&fragment_shader, NULL );
-    glCompileShader( fs );
-    free(fragment_shader);
-
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE)
-    { 
-        printf("Failed to compile fragment shader.\n");
-        return -1;
-    }
-    
-    // linking grid shader to the program
-    GLuint grid_shaders = glCreateProgram();
-    glAttachShader( grid_shaders, fs );
-    glAttachShader( grid_shaders, vs );
-    glLinkProgram( grid_shaders );
-
-    glGetProgramiv(grid_shaders, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE)
-    {
-        printf("Failed to link grid shader program.\n");
-        glDeleteProgram(grid_shaders);
-        return -1;
-    }
-
-    return grid_shaders;
-}
-
-void draw_grid(Grid *g, GLuint projLoc, GLuint viewLoc, GLuint modelLoc, const float* view, float* projection){
-
-    //GLuint projLoc = glGetUniformLocation(grid_shaders, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
-
-    //GLuint viewLoc = glGetUniformLocation(grid_shaders, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view);
-
-    //GLuint modelLoc = glGetUniformLocation(grid_shaders, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, identityMatrix4);
-    
-    glBindVertexArray( g->vao );
-    // THE DRAW BYTES ARE HARDCODED
-    glDrawArrays(GL_LINES, 0, 160000);
-
-}
-
-void show_debug_message(int run, int nbFrames, body_3d* bodies_array[], int num_bodies){
+void show_debug_message(int run, double nbFrames, body_3d* bodies_array[], int num_bodies){
 
         // debug statement
         printf("\nCurrent Frame = %d", run);
@@ -441,12 +312,12 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     // Init the grid
     Grid *g = ( Grid* )malloc(sizeof(Grid));
-    GLuint grid_shaders = init_grid(g);
-    GLuint warpLoc = glGetUniformLocation(grid_shaders, "warp");
-    GLuint gridPosLoc = glGetUniformLocation(grid_shaders, "gridPos");
+    init_grid(g);
+    GLuint warpLoc = glGetUniformLocation(g->shaders, "warp");
+    GLuint gridPosLoc = glGetUniformLocation(g->shaders, "gridPos");
 
-    glUseProgram( grid_shaders );
-    GLuint gridPosCountLoc = glGetUniformLocation(grid_shaders, "gridPosCount");
+    glUseProgram( g->shaders );
+    GLuint gridPosCountLoc = glGetUniformLocation(g->shaders, "gridPosCount");
     if(gridPosCountLoc == -1){
         printf("Failed to get gridPosCount uniform");
     }
@@ -505,18 +376,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     }
 
     // get the grid shader uniform locations
-    GLuint gridProjLoc = glGetUniformLocation(grid_shaders, "projection");
-    GLuint gridViewLoc = glGetUniformLocation(grid_shaders, "view");
-    GLuint gridModelLoc = glGetUniformLocation(grid_shaders, "model");
-    GLuint gridBodyRadius = glGetUniformLocation(grid_shaders, "radius");
-    GLuint scharzchildLoc = glGetUniformLocation(grid_shaders, "r_s");
-
-    // Magnitude is used to amplify Flamm's paraboloid, since for most objects (like the sun)
-    // the curvature is so small it cannot be seen
-    GLuint magnitudeLoc = glGetUniformLocation(grid_shaders, "magnitude");
-    if(magnitudeLoc == -1){
-        printf("Failed to get uniform magnitude\n");
-    }
+    GLuint gridBodyRadius = glGetUniformLocation(g->shaders, "radius");
+    GLuint schwarzchildLoc = glGetUniformLocation(g->shaders, "r_s");
 
     // Loads the orbit vertex and frag shader
     GLuint orbit_shader = init_orbit_shaders();
@@ -545,6 +406,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     matrix4 lightModel[numLightSources];
     vector3 lightLocations[numLightSources]; 
 
+    double fps = 0.0;
+
     glUniform1i(numLightSourcesLoc, numLightSources);
     while ( !glfwWindowShouldClose( window ) ) {
         nbFrames++;
@@ -553,6 +416,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         double currentTime = glfwGetTime();
         deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;  
+
         if ( currentTime - lastTime >= 1.0 && debug){ // If last prinf() was more than 1 sec ago
             show_debug_message(run, nbFrames, bodies_array, num_bodies);
             if (cam->tracking) {
@@ -562,6 +426,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
                     body_pos.x, body_pos.y, body_pos.z,
                     cam->tracking_vector.r, cam->tracking_vector.az, cam->tracking_vector.el);
             }
+            lastTime += 1.0;
+            nbFrames = 0;
+            
+        }
+        
+        if ( currentTime - lastTime >= 1.0){
+
+            fps = (double)nbFrames / 1.0;
             lastTime += 1.0;
             nbFrames = 0;
         }
@@ -652,7 +524,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         if(display_legend){
 
-            draw_legend(ft, cam, bodies_array, nbFrames);
+            draw_legend(ft, cam, bodies_array, fps);
 
         }
 
@@ -672,13 +544,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             
             body_3d *b = bodies_array[i];
 
-            glUseProgram( orbit_shader );
-            int modelLocationOrbit = glGetUniformLocation(orbit_shader, "model");
-
-            if (modelLocationOrbit == -1){
-                printf("failed to get model from orbit shader");
-            }
-
             // Normalized translation of body (difference from init position to current one)
             // This is used for the model translation
             vector3 n_pos = normalize_vec3(subtract_vec3s(bodies_array[i]->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
@@ -686,11 +551,17 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // Normalized Positions of the bodies
             vector3 b_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
 
-
             // orbits updating
             // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
             // where N is the ORBIT_SAMPLING var
             if(config_settings->draw_orbits){
+
+                glUseProgram( orbit_shader );
+                int modelLocationOrbit = glGetUniformLocation(orbit_shader, "model");
+                if (modelLocationOrbit == -1){
+                    printf("failed to get model from orbit shader");
+                }
+
                 int ORBIT_SAMPLING = 500;
 
                 if(run % ORBIT_SAMPLING == 0){
@@ -701,13 +572,13 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
                 drawOrbit(b->orbit);
             }
 
-            //glUniform3f(gridRealPos, n_pos.x, n_pos.y, n_pos.z);
-           
-            // Get normalized b_pos, rounded to the nearest 0.01.
-            vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+            if(config_settings->draw_grid){
 
-            // Used in the grid vert shader to render Flamm's Parabloid
-            planetGridPos[i] = n_pos_grid;
+                // Get normalized b_pos, rounded to the nearest 0.01.
+                vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+                // Used in the grid vert shader to render Flamm's Parabloid
+                planetGridPos[i] = n_pos_grid;
+            }
 
             matrix4 model = {
                 {1.0, 0.0, 0.0, 0.0},
@@ -744,26 +615,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // bytes to render. the 6 is the vertices in the quad for the sphere
             int b_render = res * res * 6; 
             glDrawArrays(GL_TRIANGLES, 0, b_render);
-
-
-
-            // Used to calculate Flamm's
-            if(config_settings->draw_grid){
-                glUseProgram( grid_shaders );
-                glUniform1fv(gridBodyRadius, num_bodies, (const GLfloat *)grid_radius);
-                glUniform1fv(scharzchildLoc, num_bodies, (const GLfloat *)grid_r_s);
-            }
-
         }
 
         if(config_settings->draw_grid){
-            glUseProgram( grid_shaders );
-        
-            // Magnitude multiplier for spacetime curvature
-            glUniform1f(magnitudeLoc, 1.0f);
+            glUseProgram(g->shaders);
+            glUniform1fv(gridBodyRadius, num_bodies, (const GLfloat *)grid_radius);
+            glUniform1fv(schwarzchildLoc, num_bodies, (const GLfloat *)grid_r_s);
             glUniform3fv(gridPosLoc, num_bodies, (const GLfloat *)planetGridPos);
-            glUniform1fv(warpLoc, num_bodies, (const GLfloat *)warp);
-            draw_grid(g, gridProjLoc, gridViewLoc, gridModelLoc, (const GLfloat *)view, projection);
+            draw_grid(g, (const GLfloat *)view, projection);
         }
 
         glfwSwapBuffers( window );

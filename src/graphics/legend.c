@@ -197,7 +197,7 @@ void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, floa
 }
 
 
-void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double nbFrames){
+void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double fps){
 
     char* text;
     float scale = 0.4f;
@@ -211,11 +211,11 @@ void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double nbFr
     int text_len = strlen(text);
     render_text(ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
 
-    char* fps;
-    asprintf(&fps, "FPS: %0.1f", (double)nbFrames / 1.0);
-    text_len = strlen(fps);
+    char* fps_text;
+    asprintf(&fps_text, "FPS: %0.1f", fps);
+    text_len = strlen(fps_text);
 
-    render_text(ft, fps, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(ft, fps_text, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
 
     char* time;
     asprintf(&time, "Runtime: %0.3f", glfwGetTime());

@@ -28,11 +28,6 @@ typedef struct Camera{
     svector3 tracking_vector;
 } Camera;
 
-typedef struct Grid{
-    GLuint vbo;
-    GLuint vao;
-} Grid;
-
 //inits glad and glfw
 GLFWwindow* init_render();
 

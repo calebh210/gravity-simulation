@@ -26,6 +26,6 @@ FT_Setup* ft_setup(char* font);
 
 void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, float scale, vector3 color);
 
-void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double nbFrames);
+void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double fps);
 
 #endif
