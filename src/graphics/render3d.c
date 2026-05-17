@@ -449,7 +449,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         if(display_legend){
 
-            draw_legend(ft, cam, bodies_array, nbFrames);
+            draw_legend(ft, cam, bodies_array, fps);
 
         }
 
