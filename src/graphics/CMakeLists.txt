@@ -1,4 +1,4 @@
-file(GLOB GRAPHICS_SOURCES *.c)
+file(GLOB GRAPHICS_SOURCES *.c shapes/*.c)
 
 add_library(graphics STATIC ${GRAPHICS_SOURCES})
 

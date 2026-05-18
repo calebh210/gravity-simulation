@@ -4,9 +4,9 @@ layout(location = 0) in vec3 vp;
 uniform mat4 model; 
 uniform mat4 view;
 uniform mat4 projection;
-uniform int gridPosCount;
+uniform int gridPosCount; // size of elements in arrays
+layout(location = 10) uniform float radius[32];
 uniform vec3 gridPos[32];
-uniform float radius[32];
 uniform float r_s[32];
 
 //Since Flamm's is normally so small, incrase the magnitude sometimes if you want to see more

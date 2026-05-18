@@ -4,6 +4,14 @@
 #include <glad.h>
 #include "math/vector/vector3.h"
 
+typedef struct rgb
+{
+    float r;
+    float g;
+    float b;
+
+} rgb;
+
 typedef struct point{
     vector3 pos;
     struct point *next;
@@ -11,8 +19,6 @@ typedef struct point{
 
 typedef struct points_list{
     point *head;
-    GLuint vao;
-    GLuint vbo;
     int count;
 } points_list;
 

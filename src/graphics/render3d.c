@@ -4,93 +4,13 @@
 #include "graphics/grid.h"
 #include "graphics/controls.h"
 #include "graphics/legend.h"
+#include "graphics/shapes/sphere.h"
 #include "math/math_funcs.h"
 #include "math/vector/vector3.h"
 #include "math/vector/vector4.h"
 #include "math/matrix/matrix4.h"
 #include "physics/gravity3d.h"
 #include "utils/shaders_parser.h"
-
-[[gnu::pure]] vector3* drawSphere(vector3 s, float r, int NUM_SEGMENTS) {
-
-    // Center of sphere
-    float cx = s.x;
-    float cy = s.y;
-    float cz = s.z;
-
-    int idx = 0;
-
-    int n = NUM_SEGMENTS;
-
-    vector3 *vertices = malloc(sizeof(vector3) * (13 * (n * n)));
-    
-    for (float i = 0.0f; i < n ; i++) {
-
-        float theta = 3.141592f * (i / n);
-        float theta1 = 3.141592f * ((i+1) / n);
-
-        for(float j = 0.0f; j < n; j++){
-
-            float phi = 2.0f * 3.1415926535f * (j / n);
-            float phi1 = 2.0f * 3.141592f * ((j+1) / n);
-
-
-            float x1 = cx + (sinf(theta) * cosf(phi) * r);
-            float y1 = cy + (sinf(theta) * sinf(phi) * r);
-            float z1 = cz + (cosf(theta) * r);
-
-            float x2 = cx + (sinf(theta1) * cosf(phi) * r);
-            float y2 = cy + (sinf(theta1) * sinf(phi) * r);
-            float z2 = cz + (cosf(theta1) * r);
-
-            float x3 = cx + (sinf(theta) * cosf(phi1) * r);
-            float y3 = cy + (sinf(theta) * sinf(phi1) * r);
-            float z3 = cz + (cosf(theta) * r);
-
-            float x4 = cx + (sinf(theta1) * cosf(phi1) * r);
-            float y4 = cy + (sinf(theta1) * sinf(phi1) * r);
-            float z4 = cz + (cosf(theta1) * r);
-
-
-            vector3 p1 = {x1, y1, z1};
-            vector3 p2 = {x2, y2, z2};
-            vector3 p3 = {x3, y3, z3};
-            vector3 p4 = {x4, y4, z4};
-
-
-            //normals for the mesh
-            vector3 p12 = subtract_vec3s(p2, p1);
-            vector3 p13 = subtract_vec3s(p3, p1);
-
-            vector3 n1 = cross_product(p12, p13);
-
-            // triangle 1
-            vertices[idx++] = p1;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
-
-            // triangle 2
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p4;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
-
-        }
-
-    }
-
-    return vertices;
-
-}
 
 GLFWwindow* init_render(){
 
@@ -189,10 +109,6 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
 
         body_3d* b = bodies_array[i];
 
-        // Init the orbit list for each body
-        // bodies_array[i]->orbit = init_list();
-        // initOrbit(bodies_array[i]->orbit);
-
         glGenBuffers( 1, &b->vbo );
         glGenVertexArrays( 1, &b->vao );
 
@@ -205,8 +121,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         vector3* vertices = drawSphere(coords, normalize(b->radius,0,SPACE_MAX), num_segments);
 
         // Init the orbit path
-        bodies_array[i]->orbit = init_list();
-        initOrbit(bodies_array[i]->orbit);
+        bodies_array[i]->orbit = initOrbit();
 
         // this is magic number-y. I should fix this
         int idx = num_segments * num_segments * 12;
@@ -245,7 +160,6 @@ void show_debug_message(int run, double nbFrames, body_3d* bodies_array[], int n
 
 void render3d(body_3d* bodies_array[], Settings* config_settings){
 
-
     int num_bodies = config_settings->num_bodies;
     bool debug = config_settings->debug;
     float timeskip = config_settings->time_delta;
@@ -254,6 +168,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     GLFWwindow* window = init_render();
     //load and compile the shaders
     GLuint shaders = init_shaders();
+
+    GLuint orbit_shader = init_orbit_shaders();
 
     // setup the text
     FT_Setup* ft = ft_setup(config_settings->font);
@@ -279,7 +195,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     float aspect = 1600.0f / 900.0f;
     float near = 0.001f;
     float far = 1000.0f;
-
     float f = 1.0f / tanf(fov / 2.0f);
 
     float projection[16] = {
@@ -289,6 +204,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         0, 0, (2*far*near)/(near-far), 0
     };
 
+    // Orbit.vert uses a static layout for the location of its uniforms
+    glUseProgram( orbit_shader );
+    glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
+    glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat *)projection);
 
     // Setup the camera
     Camera *cam = malloc(sizeof(Camera));
@@ -313,7 +232,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     // Init the grid
     Grid *g = ( Grid* )malloc(sizeof(Grid));
     init_grid(g);
-    GLuint warpLoc = glGetUniformLocation(g->shaders, "warp");
     GLuint gridPosLoc = glGetUniformLocation(g->shaders, "gridPos");
 
     glUseProgram( g->shaders );
@@ -325,7 +243,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     // arrays in the grid shaders
     vector3 planetGridPos[num_bodies];
-    float warp[num_bodies];
     float grid_r_s[num_bodies];
     float grid_radius[num_bodies];
 
@@ -337,8 +254,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     bool display_legend = false;
 
-
     glUseProgram( shaders );
+    
     // get the uniform locations
     // the model view and projection of the bodies
     GLuint modelLoc = glGetUniformLocation(shaders, "model");
@@ -376,11 +293,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     }
 
     // get the grid shader uniform locations
-    GLuint gridBodyRadius = glGetUniformLocation(g->shaders, "radius");
-    GLuint schwarzchildLoc = glGetUniformLocation(g->shaders, "r_s");
-
-    // Loads the orbit vertex and frag shader
-    GLuint orbit_shader = init_orbit_shaders();
+    GLuint schwarzchildRadiusLoc = glGetUniformLocation(g->shaders, "r_s");
 
     // This gets added to in the init bodies loop below
     int numLightSources = 0;
@@ -505,13 +418,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)view);
 
-        //for orbits
-        GLuint viewLoc2 = glGetUniformLocation(orbit_shader, "view");
+        // this updates the view model as needed for the orbit shaders
+        // orbit.vert has location 2 static set to the view matrix
         glUseProgram(orbit_shader);
-        glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, (const GLfloat *)view);
-        GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
-        glUseProgram(orbit_shader);
-        glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
+        glUniformMatrix4fv(2, 1, GL_FALSE, (const GLfloat *)view);
 
 
         // TODO: Move this into controls.c
@@ -556,20 +466,13 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // where N is the ORBIT_SAMPLING var
             if(config_settings->draw_orbits){
 
-                glUseProgram( orbit_shader );
-                int modelLocationOrbit = glGetUniformLocation(orbit_shader, "model");
-                if (modelLocationOrbit == -1){
-                    printf("failed to get model from orbit shader");
-                }
-
                 int ORBIT_SAMPLING = 500;
 
                 if(run % ORBIT_SAMPLING == 0){
                     updateOrbits(b->orbit, b_pos);
                 }
                 
-                glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
-                drawOrbit(b->orbit);
+                drawOrbit(b->orbit, orbit_shader );
             }
 
             if(config_settings->draw_grid){
@@ -619,8 +522,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         if(config_settings->draw_grid){
             glUseProgram(g->shaders);
-            glUniform1fv(gridBodyRadius, num_bodies, (const GLfloat *)grid_radius);
-            glUniform1fv(schwarzchildLoc, num_bodies, (const GLfloat *)grid_r_s);
+            glUniform1fv(10, num_bodies, (const GLfloat *)grid_radius);
+            glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat *)grid_r_s);
             glUniform3fv(gridPosLoc, num_bodies, (const GLfloat *)planetGridPos);
             draw_grid(g, (const GLfloat *)view, projection);
         }

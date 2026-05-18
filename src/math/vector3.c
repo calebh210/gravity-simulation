@@ -1,4 +1,3 @@
-#include "utils/structures.h"
 #include "math/vector/vector3.h"
 
 // normalize a vec3 to something that opengl can render

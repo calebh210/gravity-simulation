@@ -7,10 +7,11 @@
 #include <glad.h>
 //#include <unistd.h>
 #include <GLFW/glfw3.h>
-#include "utils/utils.h"
-#include "utils/structures.h"
-#include "utils/constants.h"
 #include "utils/config_parser.h"
+#include "utils/utils.h"
+#include "utils/constants.h"
+#include "graphics/body.h"
+
 
 typedef struct Camera{
     vector3 pos;

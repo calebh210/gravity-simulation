@@ -1,7 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "utils/structures.h"
+#include "utils/generic.h"
+#include "utils/utils.h"
 
 typedef struct Settings{
     bool draw_grid;

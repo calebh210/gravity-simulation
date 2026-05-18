@@ -5,12 +5,12 @@
 #include <unistd.h> 
 #include <getopt.h>
 #include "utils/config_parser.h"
-#include "utils/structures.h"
 #include "utils/help.h"
 #include "math/math_funcs.h"
 #include "physics/cr3bp.h"
 #include "graphics/render3d.h"
 #include "graphics/render.h"
+#include "graphics/body.h"
 
 
 //Take the string argument for render_mode. Validate that it is correct
