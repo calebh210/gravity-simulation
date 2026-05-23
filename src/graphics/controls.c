@@ -4,9 +4,11 @@
 
 // TODO add helper to make a new input button
 
+// TODO add helper to make a new input button
+
 // All the if statements for keypresses in GLFW
 // Updates the camera struct as needed
-void get_input(GLFWwindow* window, camera* cam){
+void get_input(GLFWwindow* window, Camera* cam){
     
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
 
@@ -146,14 +148,6 @@ void get_input(GLFWwindow* window, camera* cam){
             puts("\nCamera speed set to 5x");
         }
     }
-
-    // Jump to a body (useful on larger scales when stuff is small)
-    // I'll need to edit the lookAt matrix to make the camera look at the object
-    // if (glfwGetKey(window, GLFW_KEY_UP)){
-    //     cam->pos = normalize_vec3(bodies_array[1]->pos, SPACE_MIN, SPACE_MAX);
-    //     cam->pos.x = cam->pos.x + 0.01f;
-    //     cam ->pos.y = cam->pos.y + 0.01f;
-    // }
 
     // reset camera to init
     if (glfwGetKey(window, GLFW_KEY_R)){

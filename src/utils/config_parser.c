@@ -34,6 +34,7 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
     yaml_parser_set_input_file(&parser, fh);
 
     int NUM_BODIES_YAML = -1; // This is set to -1 so that it lines up with the indexes of the array
+    bool name_next = false;
     bool mass_next = false;
     bool pos_next = false;
     bool vel_next = false;
@@ -57,6 +58,8 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
 
                 if(strcmp((const char*)event.data.scalar.value, "Name") == 0){
 
+                    name_next = true;
+
                     NUM_BODIES_YAML++;
                     body_t *body = ( body_t* ) malloc(sizeof( body_t ));
                     
@@ -66,8 +69,8 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                             printf("Failed to allocate memory for body...\n");
                             exit(1);
                         }
-
                         body->t.as_3d = body3d;
+
                         bodies_array[NUM_BODIES_YAML] = body;
                         break;
                     }else{
@@ -76,12 +79,13 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                             printf("Failed to allocate memory for body...\n");
                             exit(1);
                         }
-
                         body->t.as_2d = body2d;
+
                         bodies_array[NUM_BODIES_YAML] = body;
                         break;
                     }
 
+                
                 }
 
                 if(strcmp((const char*)event.data.scalar.value, "Mass") == 0){
@@ -122,6 +126,30 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                 if(strcmp((const char*)event.data.scalar.value, "Orbits") == 0){
                     orbit_next = true;
                     break;
+                }
+
+                if(name_next){
+
+                    char* n = (const char*)event.data.scalar.value;
+
+                    char* name = malloc(sizeof(char) * 32);
+
+                    // Arbitrary max size of 32 for n
+                    // Check this before copying into buffer
+                    if (strlen(n) > 32){
+                        printf("ERROR: Name \"%s\" is too long. Max size is 32 chars", n);
+                        exit(1);
+                    }
+
+                    strncpy(name, n, 32);
+
+                    if (is_3d){ 
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->name = name;
+                    }
+
+                    name_next = false;
+                    break;
+
                 }
 
                 if(mass_next){

@@ -1,6 +1,6 @@
 # Inner Planets Mockup
 # Run this in 3D, 2D will fail
-Grid: false
+Grid: True
 Orbits: True
 bodies:
   - Name: Sun

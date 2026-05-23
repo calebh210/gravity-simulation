@@ -34,7 +34,9 @@ if (UNIX)
     glad
     yaml
     m
-    dl )
+    dl 
+    freetype
+    )
 endif()
 
 target_link_libraries(sim PRIVATE utils graphics physics math)

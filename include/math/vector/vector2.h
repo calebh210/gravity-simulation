@@ -9,6 +9,12 @@ typedef struct
     
 } vector2;
 
+typedef struct
+{
+    int x;
+    int y;
+} ivector2;
+
 // normalize a two_d_vectpr to something that opengl can render
 vector2 normalize_vec2(vector2 vec, double min, double max);
 

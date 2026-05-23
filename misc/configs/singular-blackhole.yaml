@@ -1,6 +1,6 @@
 # Single Black Hole
 # This looks the best if you set SPACE_MIN and SPACE_MAX close to the event horizon
-Grid: false
+Grid: True
 Orbits: True
 bodies:
   - Name: Body1

@@ -9,6 +9,8 @@ set(CMAKE_C_STANDARD 23)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+include_directories(/usr/local/include/freetype2)
+
 add_subdirectory(lib/glad_4_6_core)
 
 add_subdirectory(src)

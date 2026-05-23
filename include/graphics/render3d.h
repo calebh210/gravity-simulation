@@ -12,7 +12,7 @@
 #include "utils/constants.h"
 #include "utils/config_parser.h"
 
-typedef struct camera{
+typedef struct Camera{
     vector3 pos;
     float yaw;
     float pitch;
@@ -26,12 +26,12 @@ typedef struct camera{
     int tracked_body;
     int num_bodies;
     svector3 tracking_vector;
-} camera;
+} Camera;
 
-typedef struct grid{
+typedef struct Grid{
     GLuint vbo;
     GLuint vao;
-} grid;
+} Grid;
 
 //inits glad and glfw
 GLFWwindow* init_render();

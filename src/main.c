@@ -42,8 +42,9 @@ int main(int argc, char **argv){
     int NUM_BODIES = 2; // defaulting this to two seems correct?
     bool is_3d = false;
     char *config_file = "init.yaml"; //default config file name
+    char *font = "fonts/Inter.ttf";
 
-    while((opt = getopt(argc, argv, "dm:ht:n:3f:")) != -1) 
+    while((opt = getopt(argc, argv, "dm:ht:n:3f:w:")) != -1) 
     { 
         switch(opt) 
         {
@@ -86,6 +87,10 @@ int main(int argc, char **argv){
                 printf("Config file set to %s\n", optarg);
                 config_file = optarg;
                 break;
+            case 'w':
+                printf("Font set to %s\n", optarg);
+                font = optarg;
+                break;
             default:
                 print_help_menu();
                 exit(1);
@@ -126,6 +131,7 @@ int main(int argc, char **argv){
     config_settings->time_delta = TIME_DELTA;
     config_settings->debug = DEBUG;
     config_settings->num_bodies = NUM_BODIES;
+    config_settings->font = font;
 
     // Convert the generics into the proper type for rendering!
     if(is_3d){
@@ -133,7 +139,6 @@ int main(int argc, char **argv){
         for(int i = 0; i < NUM_BODIES; i++){
             bodies_array[i] = bodies_array_config[i]->t.as_3d;
         }
-        // Maybe I should make this just pass in a Settings object?
         render3d(bodies_array, config_settings);
 
     }else{

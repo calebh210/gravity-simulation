@@ -21,6 +21,7 @@ enum BODY_TYPE {
 
 typedef struct body_2d
 {
+    char* name; // name from the init.yaml
     double mass; // in kg
     double radius; //in m
     int resolution; // how many segments to use in circle
@@ -35,6 +36,7 @@ typedef struct body_2d
 
 typedef struct body_3d
 {
+    char* name; // name from the init.yaml
     enum BODY_TYPE type;
     double mass; // in kg
     double radius; //in m
