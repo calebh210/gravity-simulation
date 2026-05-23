@@ -130,7 +130,7 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
 
                 if(name_next){
 
-                    char* n = (const char*)event.data.scalar.value;
+                    char* n = (char*)event.data.scalar.value;
 
                     char* name = malloc(sizeof(char) * 32);
 

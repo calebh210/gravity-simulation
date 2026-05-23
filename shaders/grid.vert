@@ -4,10 +4,9 @@ layout(location = 0) in vec3 vp;
 uniform mat4 model; 
 uniform mat4 view;
 uniform mat4 projection;
-uniform int gridPosCount;
+uniform int gridPosCount; // size of elements in arrays
+layout(location = 10) uniform float radius[32];
 uniform vec3 gridPos[32];
-uniform float warp[32];
-uniform float radius[32];
 uniform float r_s[32];
 
 //Since Flamm's is normally so small, incrase the magnitude sometimes if you want to see more
@@ -31,8 +30,6 @@ void main() {
 
     for(int i=0; i < gridPosCount; i++){
 
-        float dx = v.x - gridPos[i].x;
-        float dz = v.z - gridPos[i].z;
         vec2 d = v.xz - gridPos[i].xz;
         float r = length(d); // distance to body
 

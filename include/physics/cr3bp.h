@@ -1,8 +1,8 @@
 #ifndef CR3BP_H
 #define CR3BP_H
 
+#include "graphics/body.h"
 #include "utils/utils.h"
-#include "utils/structures.h"
 #include "utils/constants.h"
 
 double angular_velocity(body_2d *b1, body_2d *b2);

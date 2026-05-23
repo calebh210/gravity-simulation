@@ -128,6 +128,11 @@ While tracking bodies, the camera moves around the tracked body using a spherica
 A legend which displays Tracked Body, Runtime, and FPS can be toggled on by pressing `O`. 
 The legend is currently a WIP, and more values will be shown in the future
 
+### Toggling the legend
+
+A legend which displays Tracked Body, Runtime, and FPS can be toggled on by pressing `O`. 
+The legend is currently a WIP, and more values will be shown in the future
+
 ### Known Issues
 - Compiling with an optimization setting higher than -O0 can cause crashes on Nvidia GPUs
 

@@ -3,6 +3,8 @@
 out vec4 FragColor;
 in vec3 Normal;  
 in vec3 FragPos;  
+
+// Make this a UBO?
 uniform float ambientStrength;
 uniform float diffuseStrength;
 uniform vec3 objectColor;

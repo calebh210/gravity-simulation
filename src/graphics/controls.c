@@ -6,6 +6,8 @@
 
 // TODO add helper to make a new input button
 
+// TODO add helper to make a new input button
+
 // All the if statements for keypresses in GLFW
 // Updates the camera struct as needed
 void get_input(GLFWwindow* window, Camera* cam){

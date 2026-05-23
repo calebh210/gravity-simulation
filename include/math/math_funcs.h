@@ -1,7 +1,7 @@
 #ifndef MATH_FUNC_H
 #define MATH_FUNC_H
 
-#include "utils/structures.h"
+#include "graphics/body.h"
 #include "utils/constants.h"
 
 double scharzchild_radius(double mass);

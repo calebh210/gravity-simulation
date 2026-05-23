@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "math/math_funcs.h"
 #include "physics/gravity.h"
-#include "utils/structures.h"
 
 /*
 

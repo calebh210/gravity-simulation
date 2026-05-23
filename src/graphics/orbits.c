@@ -3,13 +3,23 @@
 #include <stdio.h>
 #include <glad.h>
 #include <GLFW/glfw3.h>
+
 #include "utils/shaders_parser.h"
 
 // All the functions to draw the orbit lines
 // These are common between the 2D and 3D scenes
 
 // Init the orbit lists
-void initOrbit(points_list* orbit){
+Orbit* initOrbit(){
+
+    GLuint vao, vbo;
+    Orbit* orbit = malloc(sizeof(orbit));
+    
+    orbit->points = init_list();
+    orbit->vao = vao;
+    orbit->vbo = vbo;
+    // Loads the orbit vertex and frag shader
+    // orbit->shaders = init_orbit_shaders();
 
     //this can overflow
     int ORBIT_LIMIT = 10000;
@@ -23,13 +33,14 @@ void initOrbit(points_list* orbit){
     glBufferData(GL_ARRAY_BUFFER, sizeof(vector3) * ORBIT_LIMIT,
                  NULL, GL_DYNAMIC_DRAW);
 
-    // Consider a way to use GL_FLOAT to speed this up
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
     glEnableVertexAttribArray(0);
+
+    return orbit;
 }
 
 // Re-draw the orbits
-void updateOrbits(points_list* orbit, vector3 coords){
+void updateOrbits(Orbit* orbit, vector3 coords){
 
     //this can overflow
     int ORBIT_LIMIT = 10000;
@@ -38,26 +49,27 @@ void updateOrbits(points_list* orbit, vector3 coords){
     new_point->pos = coords;
     new_point->next = NULL;
 
-    add_to_list(orbit, new_point);
+    add_to_list(orbit->points, new_point);
 
     //Check the buffer isn't being overflown
     // Stop drawing for now, eventually overwrite old ones
-    if(orbit->count >= ORBIT_LIMIT){
+    if(orbit->points->count >= ORBIT_LIMIT){
         return;
     }
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, orbit->vbo);
     // Add data to the VBO
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vector3) * (orbit->count - 1), sizeof(vector3), &new_point->pos);
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vector3) * (orbit->points->count - 1), sizeof(vector3), &new_point->pos);
 
 }
 
 //trying to draw an orbit path
-void drawOrbit(const points_list* orbit){
+void drawOrbit(Orbit* orbit, GLuint shader){
+    glUseProgram(shader);
     glBindVertexArray(orbit->vao);
     glBindBuffer(GL_ARRAY_BUFFER, orbit->vbo);
-    glDrawArrays(GL_POINTS, 0, orbit->count);
+    glDrawArrays(GL_POINTS, 0, orbit->points->count);
 }
 
 GLuint init_orbit_shaders(){
@@ -80,6 +92,12 @@ GLuint init_orbit_shaders(){
     glAttachShader( orbit_shader, orbit_fs );
     glAttachShader( orbit_shader, orbit_vs );
     glLinkProgram( orbit_shader );
+
+
+    if(orbit_shader == -1){
+        printf("Failed to compile orbit shaders. Exiting...\n");
+        return -1;
+    }
 
     return orbit_shader;
 

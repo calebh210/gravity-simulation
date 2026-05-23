@@ -5,37 +5,43 @@
 #include <unistd.h> 
 #include <getopt.h>
 #include "utils/config_parser.h"
-#include "utils/structures.h"
 #include "utils/help.h"
 #include "math/math_funcs.h"
 #include "physics/cr3bp.h"
 #include "graphics/render3d.h"
 #include "graphics/render.h"
+#include "graphics/body.h"
 
 
 //Take the string argument for render_mode. Validate that it is correct
 // Return an int code to make it easier to work with
-int validate_rendering_mode(char *REF_FRAME){
+enum REFERENCE_FRAME validate_rendering_mode(char *REF_FRAME){
+
+    enum REFERENCE_FRAME frame;
+
     if(strcmp(REF_FRAME, "inertial") == 0){
-        return 100;
+        frame = INERTIAL;
     } else if(strcmp(REF_FRAME, "cog") == 0){
-        return 101;
+        frame = CENTER_OF_GRAVITY;
     } else if(strcmp(REF_FRAME, "relative") == 0){
-        return 102;
+        frame = RELATIVE;
     } else if(strcmp(REF_FRAME, "cr3bp") == 0){
-        return 103;
+        frame = CR3BP;
     } else if(strcmp(REF_FRAME, "n-body") == 0){
-        return 200;
+        frame = N_BODY;
     }else{
         printf("Render Mode not recognized. Exiting...\n");
         exit(1);
     }
+
+    return frame;
+
 }
 
 
 int main(int argc, char **argv){
-    char *REF_FRAME = NULL; //messy?
-    int REF_FRAME_CODE = 0;
+    char *FRAME = NULL; //messy?
+    enum REFERENCE_FRAME REF_FRAME;
     float TIME_DELTA = 10.0f; //time diff between frames
     bool DEBUG = false; // If TRUE, print debug statements once a second
     int opt;
@@ -48,7 +54,6 @@ int main(int argc, char **argv){
     { 
         switch(opt) 
         {
-
             case 'd':
                 DEBUG = true;
                 printf("Debugging Mode: Enabled\n");
@@ -57,9 +62,9 @@ int main(int argc, char **argv){
                 is_3d = true;
                 break;
             case 'm': 
-                REF_FRAME = optarg;
-                REF_FRAME_CODE = validate_rendering_mode(REF_FRAME); //validate
-                printf("Rendering Mode: %s\n", REF_FRAME); 
+                FRAME = optarg;
+                REF_FRAME = validate_rendering_mode(FRAME); //validate
+                printf("Rendering Mode: %s\n", FRAME); 
                 break; 
             case 't': 
                 TIME_DELTA = atof(optarg);
@@ -110,12 +115,12 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    if(NUM_BODIES != 2 && (REF_FRAME_CODE == 101 || REF_FRAME_CODE == 102)){
+    if(NUM_BODIES != 2 && (REF_FRAME == CENTER_OF_GRAVITY || REF_FRAME == RELATIVE)){
         printf("Simulation can only run in this mode with two (2) bodies\n");
         exit(1);
     }
 
-    if(NUM_BODIES !=3 && REF_FRAME_CODE == 103){
+    if(NUM_BODIES !=3 && REF_FRAME == CR3BP){
         printf("Simulation can only run in this mode with three (3) bodies\n");
         exit(1);
     }
@@ -127,7 +132,7 @@ int main(int argc, char **argv){
     // Parse the config file (init.yaml)
     // Maybe I should make the option to pick this filename
     Settings *config_settings = parse_config_file(config_file, bodies_array_config, is_3d, NUM_BODIES);
-    config_settings->ref_frame_code = REF_FRAME_CODE;
+    config_settings->ref_frame = REF_FRAME;
     config_settings->time_delta = TIME_DELTA;
     config_settings->debug = DEBUG;
     config_settings->num_bodies = NUM_BODIES;
@@ -146,7 +151,7 @@ int main(int argc, char **argv){
         for(int i = 0; i < NUM_BODIES; i++){
             bodies_array[i] = bodies_array_config[i]->t.as_2d;
         }
-        render(bodies_array, REF_FRAME_CODE, TIME_DELTA, NUM_BODIES, DEBUG);
+        render(bodies_array, REF_FRAME, TIME_DELTA, NUM_BODIES, DEBUG);
 
     }
 

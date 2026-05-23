@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include "graphics/render.h"
 #include "graphics/orbits.h"
+#include "graphics/shapes/circle.h"
 #include "physics/gravity.h"
 #include "physics/cr3bp.h"
 #include "math/math_funcs.h"
@@ -13,36 +14,6 @@
 
 // OpenGL reference: https://antongerdelan.net/opengl/hellotriangle.html
 
-// Function to draw a circle at (cx, cy) with radius 
-[[gnu::pure]] double* drawCircle(vector2 c, float r, int num_segments) {
-
-    // Center of circle
-    double cx = c.x;
-    double cy = c.y;
-
-    int num_vertices = (num_segments+1) * 3;
-
-    int idx = 0;
-
-    double *vertices = malloc(num_vertices * sizeof(double));
-    
-    for (int i = 0; i <= num_segments; i++) {
-        float angle = 2.0f * PI * i / num_segments;
-        double x = cx + cosf(angle) * r;
-        double y = cy + sinf(angle) * r;
-
-        vertices[idx] = x;
-        vertices[idx+1] = y;
-        vertices[idx+2] = 0.0;
-
-        idx += 3;
-
-    }
-
-    return vertices;
-
-}
-
 void initBodies(body_2d* bodies_array[], int num_bodies){
   
     for(int i=0; i < num_bodies ;i++){
@@ -50,8 +21,7 @@ void initBodies(body_2d* bodies_array[], int num_bodies){
         body_2d* b = bodies_array[i];
 
         // Init the orbit list for each body
-        bodies_array[i]->orbit = init_list();
-        initOrbit(bodies_array[i]->orbit);
+        bodies_array[i]->orbit = initOrbit();
 
         glGenBuffers( 1, &b->vbo );
         glGenVertexArrays( 1, &b->vao );
@@ -74,7 +44,7 @@ void initBodies(body_2d* bodies_array[], int num_bodies){
 }
 
 // Main render loop for 2D rendering
-int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_bodies, bool debug) {
+int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timeskip, int num_bodies, bool debug) {
 
 
     if (!glfwInit()) {
@@ -125,11 +95,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
     glAttachShader( shader_program, vs );
     glLinkProgram( shader_program );
 
-    // Loads the orbit vertex and frag shader
-    GLuint orbit_shader = init_orbit_shaders();
-
     //Projection Matrix
-    // This should be useful for 3D (when we get there!)
     float left = -1.0f, right = 1.0f;
     float bottom = -1.0f, top = 1.0f;
     float nearPlane = -1.0f, farPlane = 1.0f;
@@ -146,11 +112,6 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
     glUseProgram(shader_program);
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
 
-    //for orbits
-    GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
-    glUseProgram(orbit_shader);
-    glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
-
     float m[] = {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
@@ -163,10 +124,14 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
     glUseProgram(shader_program);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, m);
 
+    GLuint orbit_shader = init_orbit_shaders();
+
     //for orbits
     GLuint viewLoc2 = glGetUniformLocation(orbit_shader, "view");
+    GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
     glUseProgram(orbit_shader);
     glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, m);
+    glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
 
     // used to measure frametime
     double lastTime = glfwGetTime();
@@ -218,21 +183,21 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
             lastTime += 1.0;
         }
 
-        if(REF_FRAME_CODE == 100){
+        if(REF_FRAME == INERTIAL){
             rk4_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
-        }else if(REF_FRAME_CODE == 101){
+        }else if(REF_FRAME == RELATIVE){
            rk4_relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
-        }else if(REF_FRAME_CODE == 102){
+        }else if(REF_FRAME == CENTER_OF_GRAVITY){
             relative_equation_of_motion(bodies_array[0], bodies_array[1], timeskip);
             // vector2 cent_of_m = find_cog(body1->mass, body1->pos, body2->mass, body2->pos);
 
-        }else if(REF_FRAME_CODE == 103){
+        }else if(REF_FRAME == CR3BP){
             solve_cr3bp(bodies_array[0], bodies_array[1], bodies_array[2], timeskip);
 
-        }else if(REF_FRAME_CODE == 200){
+        }else if(REF_FRAME == N_BODY){
             rk4_nbody(0, timeskip, bodies_array, num_bodies);
 
             // vector2 cent_of_m = find_nbody_cog(bodies_array, num_bodies);
@@ -286,7 +251,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
 
             glUseProgram( orbit_shader );
             glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)identity);
-            drawOrbit(b->orbit);
+            drawOrbit(b->orbit, orbit_shader);
             
 
             // So these transformations use relative coords, so I'm storing the init positions then just subtracting from current
@@ -323,7 +288,7 @@ int render(body_2d* bodies_array[], int REF_FRAME_CODE, float timeskip, int num_
     // glDeleteVertexArrays(1, &vao);
 
     for(int i = 0; i < num_bodies; i++){
-        free_list(bodies_array[i]->orbit);
+        free_list(bodies_array[i]->orbit->points);
     }
 
     puts("\nSimulation Ending...");

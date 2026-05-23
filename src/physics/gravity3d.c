@@ -38,6 +38,13 @@
             exit(0);
         } 
 
+        vector3 velocity = bodies[i]->velocity;
+        // check if anything is going FTL. if yes, then it means the sim exploded
+        if(abs(velocity.x) > 300000000 || abs(velocity.y) > 300000000 || abs(velocity.z) > 300000000){
+            printf("\nObject detected going Faster-Than-Light. Simulation has likely blown up. Shutting down...");
+            exit(0);
+        }
+
         ddx = scale_dvec3(ddx, 1 / (r * r * r));
 
         // There is precision lost here

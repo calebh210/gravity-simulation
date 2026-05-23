@@ -1,95 +1,16 @@
 #include <string.h>
 #include "graphics/orbits.h"
 #include "graphics/render3d.h"
+#include "graphics/grid.h"
 #include "graphics/controls.h"
 #include "graphics/legend.h"
+#include "graphics/shapes/sphere.h"
 #include "math/math_funcs.h"
 #include "math/vector/vector3.h"
 #include "math/vector/vector4.h"
 #include "math/matrix/matrix4.h"
 #include "physics/gravity3d.h"
 #include "utils/shaders_parser.h"
-
-[[gnu::pure]] vector3* drawSphere(vector3 s, float r, int NUM_SEGMENTS) {
-
-    // Center of sphere
-    float cx = s.x;
-    float cy = s.y;
-    float cz = s.z;
-
-    int idx = 0;
-
-    int n = NUM_SEGMENTS;
-
-    vector3 *vertices = malloc(sizeof(vector3) * (13 * (n * n)));
-    
-    for (float i = 0.0f; i < n ; i++) {
-
-        float theta = 3.141592f * (i / n);
-        float theta1 = 3.141592f * ((i+1) / n);
-
-        for(float j = 0.0f; j < n; j++){
-
-            float phi = 2.0f * 3.1415926535f * (j / n);
-            float phi1 = 2.0f * 3.141592f * ((j+1) / n);
-
-
-            float x1 = cx + (sinf(theta) * cosf(phi) * r);
-            float y1 = cy + (sinf(theta) * sinf(phi) * r);
-            float z1 = cz + (cosf(theta) * r);
-
-            float x2 = cx + (sinf(theta1) * cosf(phi) * r);
-            float y2 = cy + (sinf(theta1) * sinf(phi) * r);
-            float z2 = cz + (cosf(theta1) * r);
-
-            float x3 = cx + (sinf(theta) * cosf(phi1) * r);
-            float y3 = cy + (sinf(theta) * sinf(phi1) * r);
-            float z3 = cz + (cosf(theta) * r);
-
-            float x4 = cx + (sinf(theta1) * cosf(phi1) * r);
-            float y4 = cy + (sinf(theta1) * sinf(phi1) * r);
-            float z4 = cz + (cosf(theta1) * r);
-
-
-            vector3 p1 = {x1, y1, z1};
-            vector3 p2 = {x2, y2, z2};
-            vector3 p3 = {x3, y3, z3};
-            vector3 p4 = {x4, y4, z4};
-
-
-            //normals for the mesh
-            vector3 p12 = subtract_vec3s(p2, p1);
-            vector3 p13 = subtract_vec3s(p3, p1);
-
-            vector3 n1 = cross_product(p12, p13);
-
-            // triangle 1
-            vertices[idx++] = p1;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
-
-            // triangle 2
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p4;
-            vertices[idx++] = n1;
-
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
-
-        }
-
-    }
-
-    return vertices;
-
-}
 
 GLFWwindow* init_render(){
 
@@ -188,10 +109,6 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
 
         body_3d* b = bodies_array[i];
 
-        // Init the orbit list for each body
-        // bodies_array[i]->orbit = init_list();
-        // initOrbit(bodies_array[i]->orbit);
-
         glGenBuffers( 1, &b->vbo );
         glGenVertexArrays( 1, &b->vao );
 
@@ -204,8 +121,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         vector3* vertices = drawSphere(coords, normalize(b->radius,0,SPACE_MAX), num_segments);
 
         // Init the orbit path
-        bodies_array[i]->orbit = init_list();
-        initOrbit(bodies_array[i]->orbit);
+        bodies_array[i]->orbit = initOrbit();
 
         // this is magic number-y. I should fix this
         int idx = num_segments * num_segments * 12;
@@ -229,137 +145,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
 
 }
 
-GLuint init_grid(Grid *g){
-
-    GLuint vao, vbo;
-
-    glGenVertexArrays( 1, &vao );
-    g->vao = vao;
-    glBindVertexArray( g->vao );
-
-    glGenBuffers( 1, &vbo );
-    g->vbo = vbo;
-
-
-    // I admit, the generation code isn't the cleanest, but it works ¯\_(ツ)_/¯
-    // I need to look into an index buffer, a lot of this is re-used
-
-    // The "step" is how far apart to draw each row/col
-    // x and z define the bounds to draw
-    // y is hardcoded to 0 as the reference point
-    // CHANGING THESE REQUIRES A MANUAL CHANGE TO glDrawArrays() in draw_grid!
-    float step = 0.05f;
-
-    float x_init = -5.0f;
-    float z_init = -5.0f;
-
-    int rows = (int)ceilf((fabsf(x_init) + fabsf(z_init)) / step);
-
-    int vertices = (2 * rows * rows) * 2;
-
-    vector3* points = malloc(vertices * sizeof(vector3));
-
-    int index = 0;
-
-    for(int i=0; i < rows; i++){ 
-        float x = x_init + (i * step);
-        for(int j=0; j < rows; j++){
-            float z = z_init + (j * step);
-            points[index++] = (vector3){ x, 0.0f, z};
-            z = z + step;
-            points[index++] = (vector3){ x, 0.0f, z};
-        }
-    }
-
-    for(int i=0; i < rows; i++){ 
-        float z = z_init + (i * step);
-        for(int j=0; j < rows; j++){
-            float x = x_init + (j * step);
-            points[index++] = (vector3){ x, 0.0f, z};
-            x = x + step;
-            points[index++] = (vector3){ x, 0.0f, z};
-        }
-    }
-
-    glBindBuffer( GL_ARRAY_BUFFER, g->vbo );
-    glBufferData( GL_ARRAY_BUFFER, vertices * sizeof(vector3), points, GL_STATIC_DRAW );
-
-    glEnableVertexAttribArray( 0 );
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
-    glBindVertexArray(0);
-
-    free(points); // loaded in the vbo, doesn't need to be on heap anymore
-
-    // Shader init
-    const char* vert_path = "shaders/grid.vert";
-    char* vertex_shader = parse_shader_file(vert_path);
-
-    const char* frag_path = "shaders/grid.frag";
-    char* fragment_shader = parse_shader_file(frag_path);
-
-    // vert shader setup / check
-    GLuint vs = glCreateShader( GL_VERTEX_SHADER );
-    glShaderSource( vs, 1, (const GLchar**)&vertex_shader, NULL );
-    glCompileShader( vs );
-    free(vertex_shader);
-
-    GLint success;
-
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE)
-    { 
-        printf("Failed to compile vertex shader.\n");
-        return -1;
-    }
-
-    // frag shader setup / check
-    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER );
-    glShaderSource( fs, 1, (const GLchar**)&fragment_shader, NULL );
-    glCompileShader( fs );
-    free(fragment_shader);
-
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE)
-    { 
-        printf("Failed to compile fragment shader.\n");
-        return -1;
-    }
-    
-    // linking grid shader to the program
-    GLuint grid_shaders = glCreateProgram();
-    glAttachShader( grid_shaders, fs );
-    glAttachShader( grid_shaders, vs );
-    glLinkProgram( grid_shaders );
-
-    glGetProgramiv(grid_shaders, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE)
-    {
-        printf("Failed to link grid shader program.\n");
-        glDeleteProgram(grid_shaders);
-        return -1;
-    }
-
-    return grid_shaders;
-}
-
-void draw_grid(Grid *g, GLuint projLoc, GLuint viewLoc, GLuint modelLoc, const float* view, float* projection){
-
-    //GLuint projLoc = glGetUniformLocation(grid_shaders, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
-
-    //GLuint viewLoc = glGetUniformLocation(grid_shaders, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view);
-
-    //GLuint modelLoc = glGetUniformLocation(grid_shaders, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, identityMatrix4);
-    
-    glBindVertexArray( g->vao );
-    // THE DRAW BYTES ARE HARDCODED
-    glDrawArrays(GL_LINES, 0, 160000);
-
-}
-
-void show_debug_message(int run, int nbFrames, body_3d* bodies_array[], int num_bodies){
+void show_debug_message(int run, double nbFrames, body_3d* bodies_array[], int num_bodies){
 
         // debug statement
         printf("\nCurrent Frame = %d", run);
@@ -374,16 +160,16 @@ void show_debug_message(int run, int nbFrames, body_3d* bodies_array[], int num_
 
 void render3d(body_3d* bodies_array[], Settings* config_settings){
 
-
     int num_bodies = config_settings->num_bodies;
     bool debug = config_settings->debug;
     float timeskip = config_settings->time_delta;
-    int ref_frame_code = config_settings->ref_frame_code;
 
     //start glfw and glad
     GLFWwindow* window = init_render();
     //load and compile the shaders
     GLuint shaders = init_shaders();
+
+    GLuint orbit_shader = init_orbit_shaders();
 
     // setup the text
     FT_Setup* ft = ft_setup(config_settings->font);
@@ -409,7 +195,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     float aspect = 1600.0f / 900.0f;
     float near = 0.001f;
     float far = 1000.0f;
-
     float f = 1.0f / tanf(fov / 2.0f);
 
     float projection[16] = {
@@ -419,6 +204,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         0, 0, (2*far*near)/(near-far), 0
     };
 
+    // Orbit.vert uses a static layout for the location of its uniforms
+    glUseProgram( orbit_shader );
+    glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
+    glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat *)projection);
 
     // Setup the camera
     Camera *cam = malloc(sizeof(Camera));
@@ -442,12 +231,11 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     // Init the grid
     Grid *g = ( Grid* )malloc(sizeof(Grid));
-    GLuint grid_shaders = init_grid(g);
-    GLuint warpLoc = glGetUniformLocation(grid_shaders, "warp");
-    GLuint gridPosLoc = glGetUniformLocation(grid_shaders, "gridPos");
+    init_grid(g);
+    GLuint gridPosLoc = glGetUniformLocation(g->shaders, "gridPos");
 
-    glUseProgram( grid_shaders );
-    GLuint gridPosCountLoc = glGetUniformLocation(grid_shaders, "gridPosCount");
+    glUseProgram( g->shaders );
+    GLuint gridPosCountLoc = glGetUniformLocation(g->shaders, "gridPosCount");
     if(gridPosCountLoc == -1){
         printf("Failed to get gridPosCount uniform");
     }
@@ -455,7 +243,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     // arrays in the grid shaders
     vector3 planetGridPos[num_bodies];
-    float warp[num_bodies];
     float grid_r_s[num_bodies];
     float grid_radius[num_bodies];
 
@@ -467,8 +254,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     bool display_legend = false;
 
-
     glUseProgram( shaders );
+    
     // get the uniform locations
     // the model view and projection of the bodies
     GLuint modelLoc = glGetUniformLocation(shaders, "model");
@@ -506,21 +293,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     }
 
     // get the grid shader uniform locations
-    GLuint gridProjLoc = glGetUniformLocation(grid_shaders, "projection");
-    GLuint gridViewLoc = glGetUniformLocation(grid_shaders, "view");
-    GLuint gridModelLoc = glGetUniformLocation(grid_shaders, "model");
-    GLuint gridBodyRadius = glGetUniformLocation(grid_shaders, "radius");
-    GLuint scharzchildLoc = glGetUniformLocation(grid_shaders, "r_s");
-
-    // Magnitude is used to amplify Flamm's paraboloid, since for most objects (like the sun)
-    // the curvature is so small it cannot be seen
-    GLuint magnitudeLoc = glGetUniformLocation(grid_shaders, "magnitude");
-    if(magnitudeLoc == -1){
-        printf("Failed to get uniform magnitude\n");
-    }
-
-    // Loads the orbit vertex and frag shader
-    GLuint orbit_shader = init_orbit_shaders();
+    GLuint schwarzchildRadiusLoc = glGetUniformLocation(g->shaders, "r_s");
 
     // This gets added to in the init bodies loop below
     int numLightSources = 0;
@@ -546,6 +319,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     matrix4 lightModel[numLightSources];
     vector3 lightLocations[numLightSources]; 
 
+    double fps = 0.0;
+
     glUniform1i(numLightSourcesLoc, numLightSources);
     while ( !glfwWindowShouldClose( window ) ) {
         nbFrames++;
@@ -554,6 +329,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         double currentTime = glfwGetTime();
         deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;  
+
         if ( currentTime - lastTime >= 1.0 && debug){ // If last prinf() was more than 1 sec ago
             show_debug_message(run, nbFrames, bodies_array, num_bodies);
             if (cam->tracking) {
@@ -563,6 +339,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
                     body_pos.x, body_pos.y, body_pos.z,
                     cam->tracking_vector.r, cam->tracking_vector.az, cam->tracking_vector.el);
             }
+            lastTime += 1.0;
+            nbFrames = 0;
+            
+        }
+        
+        if ( currentTime - lastTime >= 1.0){
+
+            fps = (double)nbFrames / 1.0;
             lastTime += 1.0;
             nbFrames = 0;
         }
@@ -614,7 +398,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         vector3 cameraDirection = vec3_unit_vector(subtract_vec3s(cam->pos, cameraTarget));
         vector3 cameraRight = vec3_unit_vector(cross_product(up, cameraDirection));
         vector3 cameraUp = cross_product(cameraDirection, cameraRight);
-
         // View  Rotation Matrix Matrix
         matrix4 view = {
             {cameraRight.x, cameraUp.x, cameraDirection.x, 0},
@@ -635,13 +418,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)view);
 
-        //for orbits
-        GLuint viewLoc2 = glGetUniformLocation(orbit_shader, "view");
+        // this updates the view model as needed for the orbit shaders
+        // orbit.vert has location 2 static set to the view matrix
         glUseProgram(orbit_shader);
-        glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, (const GLfloat *)view);
-        GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
-        glUseProgram(orbit_shader);
-        glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
+        glUniformMatrix4fv(2, 1, GL_FALSE, (const GLfloat *)view);
 
 
         // TODO: Move this into controls.c
@@ -654,15 +434,15 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         if(display_legend){
 
-            draw_legend(ft, cam, bodies_array, nbFrames);
+            draw_legend(ft, cam, bodies_array, fps);
 
         }
 
         // This is the main equation driving the physics
-        if(ref_frame_code == 101){
+        if(config_settings->ref_frame == CENTER_OF_GRAVITY){
             cog_ref_runge_kutta_3d(0, timeskip, bodies_array[0], bodies_array[1]);
 
-        }else if(ref_frame_code == 200){
+        }else if(config_settings->ref_frame == N_BODY){
             rk4_nbody_3d(0, timeskip, bodies_array, num_bodies);
 
         }else{
@@ -674,13 +454,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             
             body_3d *b = bodies_array[i];
 
-            glUseProgram( orbit_shader );
-            int modelLocationOrbit = glGetUniformLocation(orbit_shader, "model");
-
-            if (modelLocationOrbit == -1){
-                printf("failed to get model from orbit shader");
-            }
-
             // Normalized translation of body (difference from init position to current one)
             // This is used for the model translation
             vector3 n_pos = normalize_vec3(subtract_vec3s(bodies_array[i]->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
@@ -688,28 +461,27 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // Normalized Positions of the bodies
             vector3 b_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
 
-
             // orbits updating
             // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
             // where N is the ORBIT_SAMPLING var
             if(config_settings->draw_orbits){
+
                 int ORBIT_SAMPLING = 500;
 
                 if(run % ORBIT_SAMPLING == 0){
                     updateOrbits(b->orbit, b_pos);
                 }
                 
-                glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
-                drawOrbit(b->orbit);
+                drawOrbit(b->orbit, orbit_shader );
             }
 
-            //glUniform3f(gridRealPos, n_pos.x, n_pos.y, n_pos.z);
-           
-            // Get normalized b_pos, rounded to the nearest 0.01.
-            vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+            if(config_settings->draw_grid){
 
-            // Used in the grid vert shader to render Flamm's Parabloid
-            planetGridPos[i] = n_pos_grid;
+                // Get normalized b_pos, rounded to the nearest 0.01.
+                vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+                // Used in the grid vert shader to render Flamm's Parabloid
+                planetGridPos[i] = n_pos_grid;
+            }
 
             matrix4 model = {
                 {1.0, 0.0, 0.0, 0.0},
@@ -746,26 +518,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // bytes to render. the 6 is the vertices in the quad for the sphere
             int b_render = res * res * 6; 
             glDrawArrays(GL_TRIANGLES, 0, b_render);
-
-
-
-            // Used to calculate Flamm's
-            if(config_settings->draw_grid){
-                glUseProgram( grid_shaders );
-                glUniform1fv(gridBodyRadius, num_bodies, (const GLfloat *)grid_radius);
-                glUniform1fv(scharzchildLoc, num_bodies, (const GLfloat *)grid_r_s);
-            }
-
         }
 
         if(config_settings->draw_grid){
-            glUseProgram( grid_shaders );
-        
-            // Magnitude multiplier for spacetime curvature
-            glUniform1f(magnitudeLoc, 1.0f);
+            glUseProgram(g->shaders);
+            glUniform1fv(10, num_bodies, (const GLfloat *)grid_radius);
+            glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat *)grid_r_s);
             glUniform3fv(gridPosLoc, num_bodies, (const GLfloat *)planetGridPos);
-            glUniform1fv(warpLoc, num_bodies, (const GLfloat *)warp);
-            draw_grid(g, gridProjLoc, gridViewLoc, gridModelLoc, (const GLfloat *)view, projection);
+            draw_grid(g, (const GLfloat *)view, projection);
         }
 
         glfwSwapBuffers( window );
