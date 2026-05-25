@@ -8,6 +8,7 @@ Bodies:
     Velocity: 0E3,0E3,0E3
     Color: ff1320
     Type: Star
+    Model: Asteroid.obj # An optional line to define a custom Obj file to render that object as
   - Name: Body2
     Mass: 9.7219E24
     Radius: 695700E3

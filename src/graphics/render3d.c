@@ -128,9 +128,12 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         vector2_da_init(&uvs);
         vector3_da_init(&normals);
 
-        if( i == 1 ){
+        // Check if these a custom .obj model to use. IF there's not, just draw a sphere
+        if( b->has_model ){
 
-            char* filename = "Asteroid.obj";
+            printf("loading custom mode. filename = %s", b->model);\
+            fflush(stdout);
+            char* filename = b->model;
             load_obj(filename, &vertices, &uvs, &normals);
 
             // translation for obj loads
