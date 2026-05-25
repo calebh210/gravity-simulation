@@ -5,3 +5,4 @@ out/sim
 init.yaml
 test
 test.*
+*.obj

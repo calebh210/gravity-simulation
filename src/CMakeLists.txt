@@ -39,4 +39,4 @@ if (UNIX)
     )
 endif()
 
-target_link_libraries(sim PRIVATE utils graphics physics math)
+target_link_libraries(sim PRIVATE utils graphics physics math loader)
