@@ -477,21 +477,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
         }
 
-
-        // TODO: Move this into controls.c
-        static bool o_was_pressed = false;
-        bool o_pressed = glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS;
-        if (o_pressed && !o_was_pressed){
-            display_legend = !display_legend;
-        }
-        o_was_pressed = o_pressed;
-
-        if(display_legend){
-
-            draw_legend(ft, cam, bodies_array, fps);
-
-        }
-
         // This is the main equation driving the physics
         if(config_settings->ref_frame == CENTER_OF_GRAVITY){
             cog_ref_runge_kutta_3d(0, timeskip, bodies_array[0], bodies_array[1]);
