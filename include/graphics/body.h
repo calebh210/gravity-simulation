@@ -43,6 +43,8 @@ typedef struct body_2d
 typedef struct body_3d
 {
     char* name; // name from the init.yaml
+    bool has_model; // boolean flag for if a model is defined
+    char* model; // path to a .obj model
     enum BODY_TYPE type;
     double mass; // in kg
     double radius; //in m

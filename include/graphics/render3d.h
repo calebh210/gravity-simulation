@@ -12,7 +12,6 @@
 #include "utils/constants.h"
 #include "graphics/body.h"
 
-
 typedef struct Camera{
     vector3 pos;
     float yaw;

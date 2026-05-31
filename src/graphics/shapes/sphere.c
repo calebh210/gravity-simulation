@@ -1,18 +1,14 @@
-#include "graphics/shapes/sphere.h"
 #include <stdlib.h>
+#include "graphics/shapes/sphere.h"
 
-[[gnu::pure]] vector3* drawSphere(vector3 s, float r, int NUM_SEGMENTS) {
+void drawSphere(vector3 s, float r, int NUM_SEGMENTS, vector3_da *out_vertices, vector3_da *out_normals) {
 
     // Center of sphere
     float cx = s.x;
     float cy = s.y;
     float cz = s.z;
 
-    int idx = 0;
-
     int n = NUM_SEGMENTS;
-
-    vector3 *vertices = malloc(sizeof(vector3) * (13 * (n * n)));
     
     for (float i = 0.0f; i < n ; i++) {
 
@@ -51,33 +47,31 @@
             //normals for the mesh
             vector3 p12 = subtract_vec3s(p2, p1);
             vector3 p13 = subtract_vec3s(p3, p1);
-
+            
             vector3 n1 = cross_product(p12, p13);
-
+            
             // triangle 1
-            vertices[idx++] = p1;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p1);
+            vector3_da_push(out_normals, n1);
 
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p2);
+            vector3_da_push(out_normals, n1);
 
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p3);
+            vector3_da_push(out_normals, n1);
 
             // triangle 2
-            vertices[idx++] = p3;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p3);
+            vector3_da_push(out_normals, n1);
 
-            vertices[idx++] = p4;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p4);
+            vector3_da_push(out_normals, n1);
 
-            vertices[idx++] = p2;
-            vertices[idx++] = n1;
+            vector3_da_push(out_vertices, p2);
+            vector3_da_push(out_normals, n1);
 
         }
 
     }
-
-    return vertices;
 
 }

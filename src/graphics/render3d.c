@@ -11,6 +11,7 @@
 #include "math/matrix/matrix4.h"
 #include "physics/gravity3d.h"
 #include "utils/shaders_parser.h"
+#include "graphics/loader/obj_loader.h"
 
 GLFWwindow* init_render(){
 
@@ -118,28 +119,66 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         bodies_array[i]->resolution = num_segments;
 
         // normalizing radii of bodies need to be from 0->SPACE_MAX
-        vector3* vertices = drawSphere(coords, normalize(b->radius,0,SPACE_MAX), num_segments);
+
+        vector3_da vertices; 
+        vector2_da uvs; 
+        vector3_da normals;
+
+        vector3_da_init(&vertices);
+        vector2_da_init(&uvs);
+        vector3_da_init(&normals);
+
+        // Check if these a custom .obj model to use. IF there's not, just draw a sphere
+        if( b->has_model ){
+
+            printf("loading custom mode. filename = %s", b->model);\
+            fflush(stdout);
+            char* filename = b->model;
+            load_obj(filename, &vertices, &uvs, &normals);
+
+            // translation for obj loads
+
+            for(int i = 0; i < vertices.size; i++){
+
+                vertices.buf[i].x += coords.x;
+                vertices.buf[i].y += coords.y;
+                vertices.buf[i].z += coords.z;
+            }
+
+        } else {
+            drawSphere(coords, normalize(b->radius,0,SPACE_MAX), num_segments, &vertices, &normals);
+        }
+
 
         // Init the orbit path
         bodies_array[i]->orbit = initOrbit();
 
-        // this is magic number-y. I should fix this
-        int idx = num_segments * num_segments * 12;
+        printf("Size of Normals: %d. Size of Vertices: %d\n", normals.size, vertices.size);
 
         glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
-        glBufferData( GL_ARRAY_BUFFER, idx * sizeof(vector3), vertices, GL_STATIC_DRAW );
-        
+
+        size_t total_size = (vertices.size + normals.size) * sizeof(vector3);
+
+        glBufferData( GL_ARRAY_BUFFER, total_size, NULL, GL_STATIC_DRAW );
+
+        // Add the vertices / normals to the buffer
+        glBufferSubData( GL_ARRAY_BUFFER, 0, vertices.size * sizeof(vector3), &vertices.buf[0] );
+        glBufferSubData( GL_ARRAY_BUFFER, vertices.size * sizeof(vector3), normals.size * sizeof(vector3), &normals.buf[0] );
+
+        // TODO: Write method to free dynamic arrays
         // vertices can be freed once it is in the OpenGL buffer
-        free(vertices);
+        // free(vertices);
 
         glBindVertexArray( b->vao );
         glEnableVertexAttribArray( 0 );
         // Doubles are needed for large values. Floats get overflown too easily
         // this is for the vertices
-        glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vector3), (void*)0);
+        // glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vector3), (void*)0);
+        glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
+
         glEnableVertexAttribArray(1);
         // this is for the normals, used in shading
-        glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vector3), (void*)sizeof(vector3) );
+        glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void *)(vertices.size * sizeof(vector3)) );
 
     }
 
@@ -422,6 +461,21 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         // orbit.vert has location 2 static set to the view matrix
         glUseProgram(orbit_shader);
         glUniformMatrix4fv(2, 1, GL_FALSE, (const GLfloat *)view);
+
+
+        // TODO: Move this into controls.c
+        static bool o_was_pressed = false;
+        bool o_pressed = glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS;
+        if (o_pressed && !o_was_pressed){
+            display_legend = !display_legend;
+        }
+        o_was_pressed = o_pressed;
+
+        if(display_legend){
+
+            draw_legend(ft, cam, bodies_array, fps);
+
+        }
 
 
         // TODO: Move this into controls.c

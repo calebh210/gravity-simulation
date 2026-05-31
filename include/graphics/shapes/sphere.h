@@ -2,7 +2,8 @@
 #define SPHERE_H
 
 #include "math/vector/vector3.h"
+#include "utils/dynamic_array.h"
 
-vector3* drawSphere(vector3 s, float r, int NUM_SEGMENTS);
+void drawSphere(vector3 s, float r, int NUM_SEGMENTS, vector3_da *out_vertices, vector3_da *out_normals);
 
 #endif
