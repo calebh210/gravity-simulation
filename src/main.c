@@ -144,6 +144,13 @@ int main(int argc, char **argv){
         for(int i = 0; i < NUM_BODIES; i++){
             bodies_array[i] = bodies_array_config[i]->t.as_3d;
         }
+
+        bodies_array[0]->has_texture = true;
+        bodies_array[0]->texture_path = "misc/textures/red_dwarf_star.jpg";
+
+        bodies_array[1]->has_texture = true;
+        bodies_array[1]->texture_path = "misc/textures/earth2048.bmp";
+
         render3d(bodies_array, config_settings);
 
     }else{

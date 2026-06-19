@@ -3,7 +3,9 @@
 out vec4 FragColor;
 in vec3 Normal;  
 in vec3 FragPos;  
+in vec2 TexCoord;
 
+uniform sampler2D customTexture;
 // Make this a UBO?
 uniform float ambientStrength;
 uniform float diffuseStrength;
@@ -12,6 +14,7 @@ uniform vec3 lightColor;
 uniform vec3 lightPos[32];
 uniform mat4 lightModel[32];
 uniform int numLightSources;
+uniform bool load_texture;
 
 void main()
 {
@@ -33,6 +36,10 @@ void main()
 
     vec3 result = (ambient + diffuse) * objectColor;
 
-    FragColor = vec4(result, 1.0);
+    if(load_texture){
+        FragColor = texture(customTexture, TexCoord) * vec4(result, 1.0);
+    } else {
+        FragColor = vec4(result, 1.0);
+    }
 
 }

@@ -55,6 +55,9 @@ typedef struct body_3d
     vector3 pos;
     vector3 velocity;
     Orbit* orbit;
+    bool has_texture; // boolean flag for if a texture is defined
+    char* texture_path; //path to a image file to use as a texturee
+    unsigned int texture; //opengl tex object
 } body_3d;
 
 #endif
