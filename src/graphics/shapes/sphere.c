@@ -52,30 +52,31 @@ void drawSphere(vector3 s, float r, int sector_count, int stack_count, vector3_d
 
 
             //normals for the mesh
-            vector3 p12 = subtract_vec3s(p2, p1);
-            vector3 p13 = subtract_vec3s(p3, p1);
-            
-            vector3 n1 = cross_product(p12, p13);
+ 
+            vector3 n1 = vec3_unit_vector(subtract_vec3s(p1, s));
+            vector3 n2 = vec3_unit_vector(subtract_vec3s(p2, s));
+            vector3 n3 = vec3_unit_vector(subtract_vec3s(p3, s));
+            vector3 n4 = vec3_unit_vector(subtract_vec3s(p4, s));
             
             // triangle 1
             vector3_da_push(out_vertices, p1);
             vector3_da_push(out_normals, n1);
 
             vector3_da_push(out_vertices, p2);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n2);
 
             vector3_da_push(out_vertices, p3);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n3);
 
             // triangle 2
             vector3_da_push(out_vertices, p3);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n3);
 
             vector3_da_push(out_vertices, p4);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n4);
 
             vector3_da_push(out_vertices, p2);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n2);
 
 
             float s0 = (float)j / sector_count;
