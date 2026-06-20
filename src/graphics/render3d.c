@@ -10,6 +10,7 @@
 #include "math/vector/vector4.h"
 #include "math/matrix/matrix4.h"
 #include "physics/gravity3d.h"
+#include "graphics/textures/textures.h"
 #include "utils/shaders_parser.h"
 #include "graphics/loader/obj_loader.h"
 
@@ -115,9 +116,6 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
 
         vector3 coords = normalize_vec3(b->pos,SPACE_MIN,SPACE_MAX);
 
-        int num_segments = 80; // How many segments in da spheres
-        bodies_array[i]->resolution = num_segments;
-
         // normalizing radii of bodies need to be from 0->SPACE_MAX
 
         vector3_da vertices; 
@@ -129,10 +127,9 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         vector3_da_init(&normals);
 
         // Check if these a custom .obj model to use. IF there's not, just draw a sphere
-        if( b->has_model ){
+        if(b->has_model){
 
-            printf("loading custom mode. filename = %s", b->model);\
-            fflush(stdout);
+            printf("loading custom model filename = %s\n", b->model);\
             char* filename = b->model;
             load_obj(filename, &vertices, &uvs, &normals);
 
@@ -144,26 +141,38 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
                 vertices.buf[i].y += coords.y;
                 vertices.buf[i].z += coords.z;
             }
+            
+            // Need to store this so I can have OpenGL draw the right num of bytes later
+            bodies_array[i]->resolution = vertices.size;;
 
         } else {
-            drawSphere(coords, normalize(b->radius,0,SPACE_MAX), num_segments, &vertices, &normals);
+
+            int sector_count = 36; // How many segments in da spheres
+            int stack_count = 18;
+            bodies_array[i]->resolution = (sector_count * stack_count) * 6; // * 6 for the num of vertices in each quad
+
+            drawSphere(coords, normalize(b->radius,0,SPACE_MAX), sector_count, stack_count, &vertices, &normals, &uvs);
         }
 
+
+        // check if a texture is defined
+        if(b->has_texture){
+            load_texture(b);
+        }
 
         // Init the orbit path
         bodies_array[i]->orbit = initOrbit();
 
-        printf("Size of Normals: %d. Size of Vertices: %d\n", normals.size, vertices.size);
-
         glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
 
-        size_t total_size = (vertices.size + normals.size) * sizeof(vector3);
+        size_t total_size = (vertices.size + normals.size) * sizeof(vector3) + (uvs.size * sizeof(vector2));
 
         glBufferData( GL_ARRAY_BUFFER, total_size, NULL, GL_STATIC_DRAW );
 
         // Add the vertices / normals to the buffer
         glBufferSubData( GL_ARRAY_BUFFER, 0, vertices.size * sizeof(vector3), &vertices.buf[0] );
         glBufferSubData( GL_ARRAY_BUFFER, vertices.size * sizeof(vector3), normals.size * sizeof(vector3), &normals.buf[0] );
+        glBufferSubData( GL_ARRAY_BUFFER, (vertices.size + normals.size) * sizeof(vector3), uvs.size * sizeof(vector2), &uvs.buf[0] );
 
         // TODO: Write method to free dynamic arrays
         // vertices can be freed once it is in the OpenGL buffer
@@ -174,11 +183,16 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         // Doubles are needed for large values. Floats get overflown too easily
         // this is for the vertices
         // glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vector3), (void*)0);
-        glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void*)0);
+        glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
         glEnableVertexAttribArray(1);
         // this is for the normals, used in shading
-        glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, sizeof(vector3), (void *)(vertices.size * sizeof(vector3)) );
+        glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 0, (void *)(vertices.size * sizeof(vector3)) );
+
+        glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, 0,  (void *)((vertices.size + normals.size) * sizeof(vector3)) );
+        glEnableVertexAttribArray(2);
+
+
 
     }
 
@@ -531,6 +545,11 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
             glUseProgram( shaders );
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)model);
+
+            // check if texturing is enabled for this object
+            glUniform1i(glGetUniformLocation(shaders, "load_texture"), b->has_texture);
+
+            glBindTexture(GL_TEXTURE_2D, b->texture);
             glBindVertexArray( bodies_array[i]->vao );
 
             // Check if a body is defined as a star
@@ -552,11 +571,10 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             glUniform3fv(lightPos, numLightSources, (const GLfloat *)lightLocations);
             glUniformMatrix4fv(lightModelLoc, numLightSources, GL_FALSE, (const GLfloat *)lightModel);
 
-            int res = bodies_array[i]->resolution;
+            int bytes_to_draw = bodies_array[i]->resolution;
             
             // bytes to render. the 6 is the vertices in the quad for the sphere
-            int b_render = res * res * 6; 
-            glDrawArrays(GL_TRIANGLES, 0, b_render);
+            glDrawArrays(GL_TRIANGLES, 0, bytes_to_draw);
         }
 
         if(config_settings->draw_grid){

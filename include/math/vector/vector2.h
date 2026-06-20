@@ -7,6 +7,13 @@ typedef struct
     double x; 
     double y;
     
+} dvector2;
+
+typedef struct 
+{
+    float x; 
+    float y;
+    
 } vector2;
 
 typedef struct

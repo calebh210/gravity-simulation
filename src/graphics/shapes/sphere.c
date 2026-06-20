@@ -1,41 +1,48 @@
 #include <stdlib.h>
 #include "graphics/shapes/sphere.h"
+#include "utils/constants.h"
 
-void drawSphere(vector3 s, float r, int NUM_SEGMENTS, vector3_da *out_vertices, vector3_da *out_normals) {
+// I should probably make this cleaner at some point
+// TODO: Implement an Icosphere
+// https://songho.ca/opengl/gl_sphere.html
+
+void drawSphere(vector3 s, float r, int sector_count, int stack_count, vector3_da *out_vertices, vector3_da *out_normals, vector2_da *out_uvs) {
 
     // Center of sphere
     float cx = s.x;
     float cy = s.y;
     float cz = s.z;
 
-    int n = NUM_SEGMENTS;
+    float sectorStep = 2 * PI / sector_count;
+    float stackStep = PI / stack_count;
     
-    for (float i = 0.0f; i < n ; i++) {
+    for (int i = 0; i < stack_count  ; i++) {
 
-        float theta = 3.141592f * (i / n);
-        float theta1 = 3.141592f * ((i+1) / n);
+        float stackAngle = i * stackStep;
+        float stackAngleNext = (i + 1) * stackStep;
 
-        for(float j = 0.0f; j < n; j++){
+        // float xy = r * cosf(stackAngle);
 
-            float phi = 2.0f * 3.1415926535f * (j / n);
-            float phi1 = 2.0f * 3.141592f * ((j+1) / n);
+        for(int j = 0; j < sector_count; j++){
 
+            float sectorAngle = j * sectorStep;
+            float sectorAngleNext = (j + 1) * sectorStep;
 
-            float x1 = cx + (sinf(theta) * cosf(phi) * r);
-            float y1 = cy + (sinf(theta) * sinf(phi) * r);
-            float z1 = cz + (cosf(theta) * r);
+            float x1 = cx + (sinf(stackAngle) * cosf(sectorAngle) * r);
+            float y1 = cy + (sinf(stackAngle) * sinf(sectorAngle) * r);
+            float z1 = cz + (cosf(stackAngle) * r);
 
-            float x2 = cx + (sinf(theta1) * cosf(phi) * r);
-            float y2 = cy + (sinf(theta1) * sinf(phi) * r);
-            float z2 = cz + (cosf(theta1) * r);
+            float x2 = cx + (sinf(stackAngleNext) * cosf(sectorAngle) * r);
+            float y2 = cy + (sinf(stackAngleNext) * sinf(sectorAngle) * r);
+            float z2 = cz + (cosf(stackAngleNext) * r);
 
-            float x3 = cx + (sinf(theta) * cosf(phi1) * r);
-            float y3 = cy + (sinf(theta) * sinf(phi1) * r);
-            float z3 = cz + (cosf(theta) * r);
+            float x3 = cx + (sinf(stackAngle) * cosf(sectorAngleNext) * r);
+            float y3 = cy + (sinf(stackAngle) * sinf(sectorAngleNext) * r);
+            float z3 = cz + (cosf(stackAngle) * r);
 
-            float x4 = cx + (sinf(theta1) * cosf(phi1) * r);
-            float y4 = cy + (sinf(theta1) * sinf(phi1) * r);
-            float z4 = cz + (cosf(theta1) * r);
+            float x4 = cx + (sinf(stackAngleNext) * cosf(sectorAngleNext) * r);
+            float y4 = cy + (sinf(stackAngleNext) * sinf(sectorAngleNext) * r);
+            float z4 = cz + (cosf(stackAngleNext) * r);
 
 
             vector3 p1 = {x1, y1, z1};
@@ -45,33 +52,57 @@ void drawSphere(vector3 s, float r, int NUM_SEGMENTS, vector3_da *out_vertices, 
 
 
             //normals for the mesh
-            vector3 p12 = subtract_vec3s(p2, p1);
-            vector3 p13 = subtract_vec3s(p3, p1);
-            
-            vector3 n1 = cross_product(p12, p13);
+ 
+            vector3 n1 = vec3_unit_vector(subtract_vec3s(p1, s));
+            vector3 n2 = vec3_unit_vector(subtract_vec3s(p2, s));
+            vector3 n3 = vec3_unit_vector(subtract_vec3s(p3, s));
+            vector3 n4 = vec3_unit_vector(subtract_vec3s(p4, s));
             
             // triangle 1
             vector3_da_push(out_vertices, p1);
             vector3_da_push(out_normals, n1);
 
             vector3_da_push(out_vertices, p2);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n2);
 
             vector3_da_push(out_vertices, p3);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n3);
 
             // triangle 2
             vector3_da_push(out_vertices, p3);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n3);
 
             vector3_da_push(out_vertices, p4);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n4);
 
             vector3_da_push(out_vertices, p2);
-            vector3_da_push(out_normals, n1);
+            vector3_da_push(out_normals, n2);
+
+
+            float s0 = (float)j / sector_count;
+            float s1 = (float)(j + 1) / sector_count;
+
+            float t0 = (float)i / stack_count;
+            float t1 = (float)(i + 1) / stack_count;
+
+            vector2 uv1 = {s0, t0};
+            vector2 uv2 = {s0, t1};
+            vector2 uv3 = {s1, t0};
+            vector2 uv4 = {s1, t1};
+
+            vector2_da_push(out_uvs, uv1);
+            vector2_da_push(out_uvs, uv2);
+            vector2_da_push(out_uvs, uv3);
+            vector2_da_push(out_uvs, uv3);
+            vector2_da_push(out_uvs, uv4);
+            vector2_da_push(out_uvs, uv2);
+
+            
 
         }
 
     }
 
 }
+
+

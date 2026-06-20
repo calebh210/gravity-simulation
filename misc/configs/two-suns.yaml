@@ -1,5 +1,5 @@
 # Two Suns
-Grid: false
+Grid: True
 Orbits: True
 bodies:
   - Name: Body1

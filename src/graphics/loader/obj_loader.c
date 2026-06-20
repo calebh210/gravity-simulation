@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "graphics/loader/obj_loader.h"
 
 //https://www.opengl-tutorial.org/beginners-tutorials/tutorial-7-model-loading/

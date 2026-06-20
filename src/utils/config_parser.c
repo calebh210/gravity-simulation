@@ -44,6 +44,7 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
     bool grid_status_next = false;
     bool orbit_next = false;
     bool model_next = false;
+    bool texture_next = false;
 
     do {
         yaml_parser_parse(&parser, &event);
@@ -73,6 +74,7 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                         body->t.as_3d = body3d;
                         bodies_array[NUM_BODIES_YAML] = body;
                         bodies_array[NUM_BODIES_YAML]->t.as_3d->has_model = false; // init as false
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->has_texture = false;
                         break;
                     }else{
                         body_2d *body2d = ( body_2d*) malloc(sizeof( body_2d));
@@ -86,7 +88,6 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                         break;
                     }
 
-                
                 }
 
                 if(strcmp((const char*)event.data.scalar.value, "Mass") == 0){
@@ -131,6 +132,11 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
 
                 if(strcmp((const char*)event.data.scalar.value, "Model") == 0){
                     model_next = true;
+                    break;
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Texture") == 0){
+                    texture_next = true;
                     break;
                 }
 
@@ -371,6 +377,29 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                     bodies_array[NUM_BODIES_YAML]->t.as_3d->model = model_path;
 
                     model_next = false;
+
+                }
+
+                if(texture_next){
+
+                    char* t = (char*)event.data.scalar.value;
+
+                    char* texture_path = malloc(sizeof(char) * 512);
+
+                    // Arbitrary max size of 32 for n
+                    // Check this before copying into buffer
+                    if (strlen(t) > 512){
+                        printf("ERROR: Name \"%s\" is too long. Max size is 512 chars", t);
+                        exit(1);
+                    }
+
+                    strncpy(texture_path, t, 512);
+
+                    bodies_array[NUM_BODIES_YAML]->t.as_3d->has_texture = true; 
+
+                    bodies_array[NUM_BODIES_YAML]->t.as_3d->texture_path = texture_path;
+
+                    texture_next = false;
 
                 }
 

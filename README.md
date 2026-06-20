@@ -11,6 +11,7 @@ For a full list of contributors, view the [AUTHORS](AUTHORS) file
 ![Two Black Holes](misc/images/two-black-holes.png "Two Black Holes")
 ![2D Sun and Earth](misc/images/2d-sun-earth.png "Earth orbiting the sun in 2D")
 ![3D Planet Orbiting Star](misc/images/3d-planet-orbiting.png "3D Planet Orbiting a star")
+![Texturing](misc/images/texture-example.png "Planets with textures!")
 
 ## To Do
 - Add checking if init values make sense for "relative" frame
@@ -122,16 +123,6 @@ You can rotate the scene with `I`/`K`, and `J`/`L`
 You can adjust the speed to be 1x, 2x, or 5x by pressing 1,2, or 5 respectively.
 You can also track bodies by pressing `T` and can cycle forwards and backwards through which body you'd like to track with `[` and `]` respectively.
 While tracking bodies, the camera moves around the tracked body using a spherical reference vector. You may move closer or further with `W`/`S` and orbit around the body using `A`/`D` horizontally, and `I`/`K` vertically.
-
-### Toggling the legend
-
-A legend which displays Tracked Body, Runtime, and FPS can be toggled on by pressing `O`. 
-The legend is currently a WIP, and more values will be shown in the future
-
-### Toggling the legend
-
-A legend which displays Tracked Body, Runtime, and FPS can be toggled on by pressing `O`. 
-The legend is currently a WIP, and more values will be shown in the future
 
 ### Toggling the legend
 
