@@ -32,7 +32,7 @@
 
         //prevent accel from going to infinity
         // using a dampner maybe? will look into
-        const double epsilon = 10E6;
+        const double epsilon = 10E-4;
         if (r < epsilon) {
             printf("\nObject %d and object %d probably collided...` Closing Simulation\n", i, index);
             exit(0);

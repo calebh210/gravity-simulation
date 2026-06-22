@@ -36,10 +36,12 @@ void main()
 
     vec3 result = (ambient + diffuse) * objectColor;
 
-    if(load_texture){
-        FragColor = texture(customTexture, TexCoord) * vec4(result, 1.0);
-    } else {
-        FragColor = vec4(result, 1.0);
-    }
+    // if(load_texture){
+    //     FragColor = texture(customTexture, TexCoord) * vec4(result, 1.0);
+    // } else {
+    //     FragColor = vec4(result, 1.0);
+    // }
+
+    FragColor = vec4(result, 1.0);
 
 }

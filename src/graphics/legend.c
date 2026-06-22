@@ -197,30 +197,31 @@ void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, floa
 }
 
 
-void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double fps){
+void draw_legend(Scene* scene){
 
     char* text;
     float scale = 0.4f;
+    float fps = scene->framerate;
 
-    if(cam->tracking){
-        asprintf(&text, "Tracking Object: %s", bodies_array[cam->tracked_body]->name);
+    if(scene->cam->tracking){
+        asprintf(&text, "Tracking Object: %s", scene->bodies_array[scene->cam->tracked_body]->name);
     } else {
         asprintf(&text, "Tracking Object: None");
     }
 
     int text_len = strlen(text);
-    render_text(ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(scene->config->ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
 
     char* fps_text;
     asprintf(&fps_text, "FPS: %0.1f", fps);
     text_len = strlen(fps_text);
 
-    render_text(ft, fps_text, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(scene->config->ft, fps_text, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
 
     char* time;
     asprintf(&time, "Runtime: %0.3f", glfwGetTime());
     text_len = strlen(time);
 
-    render_text(ft, time, text_len, (vector2){260.0, 300.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(scene->config->ft, time, text_len, (vector2){260.0, 300.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
 
 }

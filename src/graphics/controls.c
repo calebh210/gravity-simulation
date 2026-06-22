@@ -1,18 +1,16 @@
 #include "graphics/controls.h"
 #include "graphics/render3d.h"
+#include "graphics/legend.h"
+#include "graphics/runtime.h"
 #include "utils/constants.h"
-
-// TODO add helper to make a new input button
-
-// TODO add helper to make a new input button
-
-// TODO add helper to make a new input button
 
 // TODO add helper to make a new input button
 
 // All the if statements for keypresses in GLFW
 // Updates the camera struct as needed
-void get_input(GLFWwindow* window, Camera* cam){
+void get_input(GLFWwindow* window, Scene* scene){
+
+    Camera* cam = scene->cam;
     
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
 
@@ -114,7 +112,7 @@ void get_input(GLFWwindow* window, Camera* cam){
     static bool left_was_pressed = false;
     bool left_pressed = glfwGetKey(window, GLFW_KEY_LEFT_BRACKET) == GLFW_PRESS;
     if (left_pressed && !left_was_pressed && cam->tracking){
-        cam->tracked_body = (cam->tracked_body - 1 + cam->num_bodies) % cam->num_bodies;
+        cam->tracked_body = (cam->tracked_body - 1 + scene->num_bodies) % scene->num_bodies;
     }
     left_was_pressed = left_pressed;
 
@@ -122,7 +120,7 @@ void get_input(GLFWwindow* window, Camera* cam){
     static bool right_was_pressed = false;
     bool right_pressed = glfwGetKey(window, GLFW_KEY_RIGHT_BRACKET) == GLFW_PRESS;
     if (right_pressed && !right_was_pressed && cam->tracking){
-        cam->tracked_body = (cam->tracked_body + 1) % cam->num_bodies;
+        cam->tracked_body = (cam->tracked_body + 1) % scene->num_bodies;
     }
     right_was_pressed = right_pressed;
 
@@ -159,6 +157,29 @@ void get_input(GLFWwindow* window, Camera* cam){
         // Also need to reset the rotation
         cam->yaw = -90.0f;
     }
+
+
+    static bool display_legend = false;
+
+    static bool o_was_pressed = false;
+    bool o_pressed = glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS;
+    if (o_pressed && !o_was_pressed){
+        display_legend = !display_legend;
+    }
+    
+    o_was_pressed = o_pressed;
+
+    if(display_legend){
+        draw_legend(scene);
+    }
+
+    static bool n_was_pressed = false;
+
+    bool n_pressed = glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS;
+    if (n_pressed && !n_was_pressed){
+        add_new_body(scene);
+    }
+    n_was_pressed = n_pressed;
 
     // Don't let the user's flip the camera over, it breaks things
     if(cam->pitch > 89.0f)

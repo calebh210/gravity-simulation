@@ -3,7 +3,6 @@
 #include "graphics/render3d.h"
 #include "graphics/grid.h"
 #include "graphics/controls.h"
-#include "graphics/legend.h"
 #include "graphics/shapes/sphere.h"
 #include "math/math_funcs.h"
 #include "math/vector/vector3.h"
@@ -13,6 +12,7 @@
 #include "graphics/textures/textures.h"
 #include "utils/shaders_parser.h"
 #include "graphics/loader/obj_loader.h"
+#include "graphics/scene.h"
 
 GLFWwindow* init_render(){
 
@@ -211,11 +211,11 @@ void show_debug_message(int run, double nbFrames, body_3d* bodies_array[], int n
         }
 }
 
-void render3d(body_3d* bodies_array[], Settings* config_settings){
+void render3d(Scene* scene){
 
-    int num_bodies = config_settings->num_bodies;
-    bool debug = config_settings->debug;
-    float timeskip = config_settings->time_delta;
+    int num_bodies = scene->num_bodies;
+    bool debug = scene->config->debug;
+    float timeskip = scene->config->time_delta;
 
     //start glfw and glad
     GLFWwindow* window = init_render();
@@ -225,7 +225,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     GLuint orbit_shader = init_orbit_shaders();
 
     // setup the text
-    FT_Setup* ft = ft_setup(config_settings->font);
+    scene->config->ft = ft_setup(scene->config->font);
 
     if(shaders == -1){
         printf("Exiting...\n");
@@ -263,24 +263,25 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat *)projection);
 
     // Setup the camera
-    Camera *cam = malloc(sizeof(Camera));
+
+    scene->cam = malloc(sizeof(Camera));
 
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
     
-    cam->pos = cameraPosDefault;
-    cam->pitch = 0.0f;
-    cam->yaw = -90.0f;
-    cam->speedMultiplier = 3.0f;
+    scene->cam->pos = cameraPosDefault;
+    scene->cam->pitch = 0.0f;
+    scene->cam->yaw = -90.0f;
+    scene->cam->speedMultiplier = 3.0f;
     
     vector3 up = {0.0f, 1.0f, 0.0f};
 
-    cam->tracking = false;
-    cam->tracked_body = 0;
-    cam->num_bodies = num_bodies;
-    cam->tracking_vector = (svector3){0.0f, 0.0f, 0.0f};
+    scene->cam->tracking = false;
+    scene->cam->tracked_body = 0;
+    scene->cam->tracking_vector = (svector3){0.0f, 0.0f, 0.0f};
+
 
     // Init the bodies
-    init_3d_bodies(bodies_array, num_bodies);
+    init_3d_bodies(scene->bodies_array, num_bodies);
 
     // Init the grid
     Grid *g = ( Grid* )malloc(sizeof(Grid));
@@ -304,8 +305,6 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     float deltaTime = 0.0f;	// Time between current frame and last frame
     int nbFrames = 0;
     int run = 0;
-
-    bool display_legend = false;
 
     glUseProgram( shaders );
     
@@ -355,15 +354,15 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     vector3 init_bodies_pos[num_bodies];
     for(int i=0; i < num_bodies; i++){
 
-        init_bodies_pos[i] = bodies_array[i]->pos;
-        grid_r_s[i] = normalize(scharzchild_radius(bodies_array[i]->mass), 0, SPACE_MAX/2);
-        grid_radius[i] = normalize(bodies_array[i]->radius, 0, SPACE_MAX);
+        init_bodies_pos[i] = scene->bodies_array[i]->pos;
+        grid_r_s[i] = normalize(scharzchild_radius(scene->bodies_array[i]->mass), 0, SPACE_MAX/2);
+        grid_radius[i] = normalize(scene->bodies_array[i]->radius, 0, SPACE_MAX);
         
-        printf("Schwarzchild Radius of %d = %f, Normalized = %.8lf\n", i+1, scharzchild_radius(bodies_array[i]->mass), grid_r_s[i]);
+        printf("Schwarzchild Radius of %d = %f, Normalized = %.8lf\n", i+1, scharzchild_radius(scene->bodies_array[i]->mass), grid_r_s[i]);
         printf("Normalized Radius = %f\n", grid_radius[i]);
 
         // Checking to see if the body is a star, and adding to numLightSources if it is
-        if(bodies_array[i]->type == STAR){
+        if(scene->bodies_array[i]->type == STAR){
             numLightSources++;
         }
     }
@@ -376,6 +375,11 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
 
     glUniform1i(numLightSourcesLoc, numLightSources);
     while ( !glfwWindowShouldClose( window ) ) {
+
+
+        // these are just pointers to the scene objects so that my var definitions arent super long
+        Camera *cam = scene->cam;
+
         nbFrames++;
         run++;
         // Frame timer
@@ -384,9 +388,9 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         lastFrame = currentTime;  
 
         if ( currentTime - lastTime >= 1.0 && debug){ // If last prinf() was more than 1 sec ago
-            show_debug_message(run, nbFrames, bodies_array, num_bodies);
+            show_debug_message(run, nbFrames, scene->bodies_array, scene->num_bodies);
             if (cam->tracking) {
-                vector3 body_pos = normalize_vec3(bodies_array[cam->tracked_body]->pos, SPACE_MIN, SPACE_MAX);
+                vector3 body_pos = normalize_vec3(scene->bodies_array[cam->tracked_body]->pos, SPACE_MIN, SPACE_MAX);
                 printf("cam pos: (%.3f, %.3f, %.3f) | body pos: (%.3f, %.3f, %.3f) | offset: (%.3f, %.3f, %.3f)\n",
                     cam->pos.x, cam->pos.y, cam->pos.z,
                     body_pos.x, body_pos.y, body_pos.z,
@@ -399,10 +403,12 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         
         if ( currentTime - lastTime >= 1.0){
 
-            fps = (double)nbFrames / 1.0;
+            scene->framerate = (double)nbFrames / 1.0;
             lastTime += 1.0;
             nbFrames = 0;
         }
+
+        body_3d** bodies_array = scene->bodies_array;
 
         bool was_tracking = cam->tracking;
         int prev_tracked = cam->tracked_body;
@@ -421,13 +427,13 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         cam->rotSpeed = 3.0f * deltaTime * cam->speedMultiplier;
         cam->front = cameraFront;
 
-        get_input(window, cam);
+        get_input(window, scene);
 
         // new tracking, capture tracking vector from body to camera in space
         // OR
         // cycled to a different body, recapture the tracking vector
         if ((!was_tracking && cam->tracking) || (was_tracking && cam->tracking && cam->tracked_body != prev_tracked)){
-            vector3 normed_track = normalize_vec3(bodies_array[cam->tracked_body]->pos, SPACE_MIN, SPACE_MAX);
+            vector3 normed_track = normalize_vec3(scene->bodies_array[cam->tracked_body]->pos, SPACE_MIN, SPACE_MAX);
             cam->tracking_vector = cartesian_to_spherical(subtract_vec3s(cam->pos, normed_track));
         }
         // disabled tracking, rsync yaw/pitch from actual look direction
@@ -439,12 +445,11 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         }
         // while tracking is on
         if (cam->tracking) {
-            body_3d *target = bodies_array[cam->tracked_body];
+            body_3d *target = scene->bodies_array[cam->tracked_body];
             vector3 normalized_target = normalize_vec3(target->pos, SPACE_MIN, SPACE_MAX);
             cam->pos = add_vec3s(normalized_target, spherical_to_cartesian(cam->tracking_vector));
             cameraFront = vec3_unit_vector(subtract_vec3s(normalized_target, cam->pos));
         }
-
 
         // These are the steps to calculte the vectors needed for a lookAt matrix
         vector3 cameraTarget = add_vec3s(cameraFront, cam->pos);
@@ -476,40 +481,30 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
         glUseProgram(orbit_shader);
         glUniformMatrix4fv(2, 1, GL_FALSE, (const GLfloat *)view);
 
-
-        // TODO: Move this into controls.c
-        static bool o_was_pressed = false;
-        bool o_pressed = glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS;
-        if (o_pressed && !o_was_pressed){
-            display_legend = !display_legend;
-        }
-        o_was_pressed = o_pressed;
-
-        if(display_legend){
-
-            draw_legend(ft, cam, bodies_array, fps);
-
-        }
+        enum REFERENCE_FRAME frame = scene->config->ref_frame;
 
         // This is the main equation driving the physics
-        if(config_settings->ref_frame == CENTER_OF_GRAVITY){
-            cog_ref_runge_kutta_3d(0, timeskip, bodies_array[0], bodies_array[1]);
+        switch (frame) {
 
-        }else if(config_settings->ref_frame == N_BODY){
-            rk4_nbody_3d(0, timeskip, bodies_array, num_bodies);
+            case CENTER_OF_GRAVITY:
+                cog_ref_runge_kutta_3d(0, timeskip, bodies_array[0], bodies_array[1]);
+                break;
 
-        }else{
-            exit(1); // should never be reached
+            case N_BODY:
+                rk4_nbody_3d(0, timeskip, bodies_array, scene->num_bodies);
+                break;
+        
+            default:
+                exit(1); // should never be reached
         }
-      
-        for(int i=0;i<num_bodies;i++){ 
 
-            
-            body_3d *b = bodies_array[i];
+        for(int i=0;i<scene->num_bodies;i++){ 
+
+            body_3d *b = scene->bodies_array[i];
 
             // Normalized translation of body (difference from init position to current one)
             // This is used for the model translation
-            vector3 n_pos = normalize_vec3(subtract_vec3s(bodies_array[i]->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
+            vector3 n_pos = normalize_vec3(subtract_vec3s(b->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
 
             // Normalized Positions of the bodies
             vector3 b_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
@@ -517,7 +512,7 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             // orbits updating
             // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
             // where N is the ORBIT_SAMPLING var
-            if(config_settings->draw_orbits){
+            if(scene->config->draw_orbits){
 
                 int ORBIT_SAMPLING = 500;
 
@@ -528,13 +523,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
                 drawOrbit(b->orbit, orbit_shader );
             }
 
-            if(config_settings->draw_grid){
+            if(scene->config->draw_grid){
 
                 // Get normalized b_pos, rounded to the nearest 0.01.
                 vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
                 // Used in the grid vert shader to render Flamm's Parabloid
                 planetGridPos[i] = n_pos_grid;
             }
+
 
             matrix4 model = {
                 {1.0, 0.0, 0.0, 0.0},
@@ -547,10 +543,16 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)model);
 
             // check if texturing is enabled for this object
-            glUniform1i(glGetUniformLocation(shaders, "load_texture"), b->has_texture);
+            if(b->has_texture){
 
-            glBindTexture(GL_TEXTURE_2D, b->texture);
-            glBindVertexArray( bodies_array[i]->vao );
+                glUniform1i(glGetUniformLocation(shaders, "load_texture"), b->has_texture);
+                glBindTexture(GL_TEXTURE_2D, b->texture);
+
+            }
+
+
+
+            glBindVertexArray( b->vao );
 
             // Check if a body is defined as a star
             // If yes, give is an ambient strength of max and add it as a light source (iffy)
@@ -571,13 +573,14 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
             glUniform3fv(lightPos, numLightSources, (const GLfloat *)lightLocations);
             glUniformMatrix4fv(lightModelLoc, numLightSources, GL_FALSE, (const GLfloat *)lightModel);
 
-            int bytes_to_draw = bodies_array[i]->resolution;
+            int bytes_to_draw = b->resolution;
             
             // bytes to render. the 6 is the vertices in the quad for the sphere
             glDrawArrays(GL_TRIANGLES, 0, bytes_to_draw);
         }
 
-        if(config_settings->draw_grid){
+
+        if(scene->config->draw_grid){
             glUseProgram(g->shaders);
             glUniform1fv(10, num_bodies, (const GLfloat *)grid_radius);
             glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat *)grid_r_s);
@@ -592,7 +595,8 @@ void render3d(body_3d* bodies_array[], Settings* config_settings){
     glfwTerminate();
 
     //Free some stuff
-    free(cam);
+    free(scene->cam);
 
     puts("\nSimulation Ending...");
 }
+

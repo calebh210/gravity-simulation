@@ -11,7 +11,7 @@
 #include "graphics/render3d.h"
 #include "graphics/render.h"
 #include "graphics/body.h"
-
+#include "graphics/scene.h"
 
 //Take the string argument for render_mode. Validate that it is correct
 // Return an int code to make it easier to work with
@@ -135,16 +135,23 @@ int main(int argc, char **argv){
     config_settings->ref_frame = REF_FRAME;
     config_settings->time_delta = TIME_DELTA;
     config_settings->debug = DEBUG;
-    config_settings->num_bodies = NUM_BODIES;
+    // config_settings->num_bodies = NUM_BODIES;
     config_settings->font = font;
+
+    Scene *scene = malloc(sizeof(Scene));
+    scene->num_bodies = NUM_BODIES;
+    scene->config = config_settings;
+    scene->cam = NULL;
 
     // Convert the generics into the proper type for rendering!
     if(is_3d){
-        body_3d* bodies_array[NUM_BODIES];
+        body_3d** bodies_array = malloc(sizeof( body_3d ) * NUM_BODIES);
         for(int i = 0; i < NUM_BODIES; i++){
             bodies_array[i] = bodies_array_config[i]->t.as_3d;
         }
-        render3d(bodies_array, config_settings);
+
+        scene->bodies_array = bodies_array;
+        render3d(scene);
 
     }else{
         body_2d* bodies_array[NUM_BODIES];
@@ -154,6 +161,5 @@ int main(int argc, char **argv){
         render(bodies_array, REF_FRAME, TIME_DELTA, NUM_BODIES, DEBUG);
 
     }
-
 
 }
