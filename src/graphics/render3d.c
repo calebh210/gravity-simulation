@@ -114,8 +114,6 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         glGenBuffers( 1, &b->vbo );
         glGenVertexArrays( 1, &b->vao );
 
-        vector3 coords = normalize_vec3(b->pos,SPACE_MIN,SPACE_MAX);
-
         // normalizing radii of bodies need to be from 0->SPACE_MAX
 
         vector3_da vertices; 
@@ -132,15 +130,6 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
             printf("loading custom model filename = %s\n", b->model);\
             char* filename = b->model;
             load_obj(filename, &vertices, &uvs, &normals);
-
-            // translation for obj loads
-
-            for(int i = 0; i < vertices.size; i++){
-
-                vertices.buf[i].x += coords.x;
-                vertices.buf[i].y += coords.y;
-                vertices.buf[i].z += coords.z;
-            }
             
             // Need to store this so I can have OpenGL draw the right num of bytes later
             bodies_array[i]->resolution = vertices.size;;
@@ -151,7 +140,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
             int stack_count = 18;
             bodies_array[i]->resolution = (sector_count * stack_count) * 6; // * 6 for the num of vertices in each quad
 
-            drawSphere(coords, normalize(b->radius,0,SPACE_MAX), sector_count, stack_count, &vertices, &normals, &uvs);
+            drawSphere(normalize(b->radius,0,SPACE_MAX), sector_count, stack_count, &vertices, &normals, &uvs);
         }
 
 
@@ -247,7 +236,7 @@ void render3d(Scene* scene){
     float fov = 60.0f * DEG_TO_RAD;
     float aspect = 1600.0f / 900.0f;
     float near = 0.001f;
-    float far = 1000.0f;
+    float far = 10000.0f;
     float f = 1.0f / tanf(fov / 2.0f);
 
     float projection[16] = {
@@ -256,6 +245,23 @@ void render3d(Scene* scene){
         0, 0, (far+near)/(near-far), -1,
         0, 0, (2*far*near)/(near-far), 0
     };
+
+    // float fov = 60.0f;
+    // float aspectRatio = 1600.0f / 900.0f;
+    // float front = 0.01f;
+    // float back = 10000.0f;
+    // float tangent = tan(fov/2 * DEG_TO_RAD);    // tangent of half fovY
+    // float top = front * tangent;              // half height of near plane
+    // float right = top * aspectRatio; 
+
+    // float projection[16];
+
+    // projection[0] = front / right;
+    // projection[5] = front / top;
+    // projection[10] = -(back + front ) / (back - front);
+    // projection[11] = -1;
+    // projection[14] = -(2 * back * front) / (back - front);
+    // projection[15] = 0;
 
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram( orbit_shader );
@@ -267,6 +273,9 @@ void render3d(Scene* scene){
     scene->cam = malloc(sizeof(Camera));
 
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
+
+    // vector3 cameraPosDefault = {0, 0.0f,0.0f};
+
     
     scene->cam->pos = cameraPosDefault;
     scene->cam->pitch = 0.0f;
@@ -374,6 +383,7 @@ void render3d(Scene* scene){
     double fps = 0.0;
 
     glUniform1i(numLightSourcesLoc, numLightSources);
+
     while ( !glfwWindowShouldClose( window ) ) {
 
 
@@ -502,12 +512,8 @@ void render3d(Scene* scene){
 
             body_3d *b = scene->bodies_array[i];
 
-            // Normalized translation of body (difference from init position to current one)
-            // This is used for the model translation
-            vector3 n_pos = normalize_vec3(subtract_vec3s(b->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
-
             // Normalized Positions of the bodies
-            vector3 b_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
+            vector3 n_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
 
             // orbits updating
             // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
@@ -517,7 +523,7 @@ void render3d(Scene* scene){
                 int ORBIT_SAMPLING = 500;
 
                 if(run % ORBIT_SAMPLING == 0){
-                    updateOrbits(b->orbit, b_pos);
+                    updateOrbits(b->orbit, n_pos);
                 }
                 
                 drawOrbit(b->orbit, orbit_shader );
@@ -525,12 +531,12 @@ void render3d(Scene* scene){
 
             if(scene->config->draw_grid){
 
-                // Get normalized b_pos, rounded to the nearest 0.01.
-                vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+                // Get body pos, rounded to the nearest 0.01 ( the res of the grid )
+                // vector3 n_pos_grid = { roundf(b_pos.x * 100.0f)/100.0f, 0.0f, roundf(b_pos.z * 100.0f)/100.0f };      
+                vector3 n_pos_grid = { roundf(n_pos.x * 100.0f)/100.0f, 0.0f, roundf(n_pos.z * 100.0f)/100.0f };      
                 // Used in the grid vert shader to render Flamm's Parabloid
                 planetGridPos[i] = n_pos_grid;
             }
-
 
             matrix4 model = {
                 {1.0, 0.0, 0.0, 0.0},
@@ -550,8 +556,6 @@ void render3d(Scene* scene){
 
             }
 
-
-
             glBindVertexArray( b->vao );
 
             // Check if a body is defined as a star
@@ -562,7 +566,7 @@ void render3d(Scene* scene){
 
                 // keep it always bright (like a star)
                 glUniform1f(ambientStrengthLoc, 1.0f);
-                lightLocations[i] = b_pos;        
+                lightLocations[i] = n_pos;        
 
             } else {
                 glUniform1f(ambientStrengthLoc, 0.08f);

@@ -205,6 +205,8 @@ void draw_legend(Scene* scene){
 
     if(scene->cam->tracking){
         asprintf(&text, "Tracking Object: %s", scene->bodies_array[scene->cam->tracked_body]->name);
+        printf("Tracking Object: %s\n", scene->bodies_array[scene->cam->tracked_body]->name);
+
     } else {
         asprintf(&text, "Tracking Object: None");
     }

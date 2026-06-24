@@ -66,9 +66,6 @@ void add_new_body(Scene* scene){
 
     b->texture = 0;
 
-
-    vector3 coords = normalize_vec3(b->pos,SPACE_MIN,SPACE_MAX);
-
     vector3_da vertices; 
     vector2_da uvs; 
     vector3_da normals;
@@ -81,7 +78,7 @@ void add_new_body(Scene* scene){
     int stack_count = 18;
     b->resolution = (sector_count * stack_count) * 6; // * 6 for the num of vertices in each quad
 
-    drawSphere(coords, normalize(b->radius,0,SPACE_MAX), sector_count, stack_count, &vertices, &normals, &uvs);
+    drawSphere(normalize(b->radius,0,SPACE_MAX), sector_count, stack_count, &vertices, &normals, &uvs);
 
     glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
 
