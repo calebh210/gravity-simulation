@@ -246,23 +246,6 @@ void render3d(Scene* scene){
         0, 0, (2*far*near)/(near-far), 0
     };
 
-    // float fov = 60.0f;
-    // float aspectRatio = 1600.0f / 900.0f;
-    // float front = 0.01f;
-    // float back = 10000.0f;
-    // float tangent = tan(fov/2 * DEG_TO_RAD);    // tangent of half fovY
-    // float top = front * tangent;              // half height of near plane
-    // float right = top * aspectRatio; 
-
-    // float projection[16];
-
-    // projection[0] = front / right;
-    // projection[5] = front / top;
-    // projection[10] = -(back + front ) / (back - front);
-    // projection[11] = -1;
-    // projection[14] = -(2 * back * front) / (back - front);
-    // projection[15] = 0;
-
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram( orbit_shader );
     glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
@@ -275,7 +258,6 @@ void render3d(Scene* scene){
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
 
     // vector3 cameraPosDefault = {0, 0.0f,0.0f};
-
     
     scene->cam->pos = cameraPosDefault;
     scene->cam->pitch = 0.0f;
