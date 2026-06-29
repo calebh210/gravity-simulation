@@ -366,6 +366,9 @@ void render3d(Scene* scene){
 
     glUniform1i(numLightSourcesLoc, numLightSources);
 
+    float rot_speed = 0.001f;
+
+
     while ( !glfwWindowShouldClose( window ) ) {
 
 
@@ -520,12 +523,25 @@ void render3d(Scene* scene){
                 planetGridPos[i] = n_pos_grid;
             }
 
-            matrix4 model = {
-                {1.0, 0.0, 0.0, 0.0},
-                {0.0, 1.0, 0.0, 0.0},
-                {0.0, 0.0, 1.0, 0.0},
-                {n_pos.x, n_pos.y, n_pos.z, 1.0},
-            };
+            // this is just an identity matrix
+            // matrix4 model = {
+            //     {1.0, 0.0, 0.0, 0.0},
+            //     {0.0, 1.0, 0.0, 0.0},
+            //     {0.0, 0.0, 1.0, 0.0},
+            //     {0.0, 0.0, 0.0, 1.0},
+            // };
+
+            matrix4_position_transformation(identityMatrix4, n_pos);
+            
+            // matrix4 model = {
+            //     {cos(rot_speed), 0.0, -sin(rot_speed), 0.0},
+            //     {0.0, 1.0, 0.0, 0.0},
+            //     {sin(rot_speed), 0.0, cos(rot_speed), 0.0},
+            //     {n_pos.x, n_pos.y, n_pos.z, 1.0},
+            // };
+
+            rot_speed += 0.0001f;
+
 
             glUseProgram( shaders );
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)model);

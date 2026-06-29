@@ -14,11 +14,8 @@ For a full list of contributors, view the [AUTHORS](AUTHORS) file
 ![Texturing](misc/images/texture-example.png "Planets with textures!")
 
 ## To Do
-- Add checking if init values make sense for "relative" frame
 - Raytracing?
 - Allow objects to be "eaten" by black holes (Don't pause the simulation, just remove the object)
-- Make the orbit trails configurable
-- Add textures?
 - Make the bodies spin? (would need textures)
 - Make the lighting dim the further you are from an object
 - I'm not entirely sure the COG frame is 100% correct. I'll need to re-review it at a later date
