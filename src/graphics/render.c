@@ -112,17 +112,10 @@ int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timesk
     glUseProgram(shader_program);
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
 
-    float m[] = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-
     //View Matrix (just an identity for now)
     GLuint viewLoc = glGetUniformLocation(shader_program, "view");
     glUseProgram(shader_program);
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, m);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)MATRIX4_IDENTITY_MATRIX);
 
     GLuint orbit_shader = init_orbit_shaders();
 
@@ -130,7 +123,7 @@ int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timesk
     GLuint viewLoc2 = glGetUniformLocation(orbit_shader, "view");
     GLuint projLoc2 = glGetUniformLocation(orbit_shader, "projection");
     glUseProgram(orbit_shader);
-    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, m);
+    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE, (const GLfloat *)MATRIX4_IDENTITY_MATRIX);
     glUniformMatrix4fv(projLoc2, 1, GL_FALSE, projection);
 
     // used to measure frametime
@@ -242,15 +235,9 @@ int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timesk
                 updateOrbits(b->orbit, coord);
 
             }
-            matrix4 identity = {
-                {1.0, 0.0, 0.0, 0.0},
-                {0.0, 1.0, 0.0, 0.0},
-                {0.0, 0.0, 1.0, 0.0},
-                {0.0, 0.0, 0.0, 1.0}
-            };
 
             glUseProgram( orbit_shader );
-            glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)identity);
+            glUniformMatrix4fv(modelLocationOrbit, 1, GL_TRUE, (const GLfloat *)MATRIX4_IDENTITY_MATRIX);
             drawOrbit(b->orbit, orbit_shader);
             
 
@@ -258,11 +245,13 @@ int render(body_2d* bodies_array[], enum REFERENCE_FRAME REF_FRAME, float timesk
             // This way I don't have the re-write VBOs and its faster, but it feels...ugly
             vector2 n_pos = normalize_vec2(subtract_vec2s(b->pos,init_bodies_pos[i]), SPACE_MIN, SPACE_MAX);
 
+            vector3 translation_pos = {n_pos.x, n_pos.y, 0.0f};
+
             matrix4 m = {
-                {1.0, 0.0, 0.0, 0},
-                {0.0, 1.0, 0.0, 0},
-                {0.0, 0.0, 1.0, 0.0},
-                {n_pos.x, n_pos.y, 0.0, 1.0}
+                1.0, 0.0, 0.0, 0,
+                0.0, 1.0, 0.0, 0,
+                0.0, 0.0, 1.0, 0.0,
+                n_pos.x, n_pos.y, 0.0, 1.0
             };
 
             glUseProgram( shader_program );

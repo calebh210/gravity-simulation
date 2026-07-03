@@ -248,7 +248,7 @@ void render3d(Scene* scene){
 
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram( orbit_shader );
-    glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat *)identityMatrix4);
+    glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat *)MATRIX4_IDENTITY_MATRIX);
     glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat *)projection);
 
     // Setup the camera
@@ -453,13 +453,13 @@ void render3d(Scene* scene){
         vector3 cameraUp = cross_product(cameraDirection, cameraRight);
         // View  Rotation Matrix Matrix
         matrix4 view = {
-            {cameraRight.x, cameraUp.x, cameraDirection.x, 0},
-            {cameraRight.y, cameraUp.y, cameraDirection.y, 0},
-            {cameraRight.z, cameraUp.z, cameraDirection.z, 0},
-            {   (-1) * dot_vec3s(cameraRight, cam->pos),
+            cameraRight.x, cameraUp.x, cameraDirection.x, 0,
+            cameraRight.y, cameraUp.y, cameraDirection.y, 0,
+            cameraRight.z, cameraUp.z, cameraDirection.z, 0,
+               (-1) * dot_vec3s(cameraRight, cam->pos),
                 (-1) * dot_vec3s(cameraUp, cam->pos),
                 (-1) * dot_vec3s(cameraDirection, cam->pos)
-                ,1}
+                ,1
         };
 
         cam->right = cameraRight;
@@ -500,6 +500,8 @@ void render3d(Scene* scene){
             // Normalized Positions of the bodies
             vector3 n_pos = normalize_vec3(b->pos, SPACE_MIN, SPACE_MAX);
 
+            // vector3 relative_pos = subtract_vec3s(b->pos, cam->pos);
+
             // orbits updating
             // This variable is probably poorly named, but it essentially puts a line in the orbit path once every N frames
             // where N is the ORBIT_SAMPLING var
@@ -524,24 +526,29 @@ void render3d(Scene* scene){
             }
 
             // this is just an identity matrix
-            // matrix4 model = {
-            //     {1.0, 0.0, 0.0, 0.0},
-            //     {0.0, 1.0, 0.0, 0.0},
-            //     {0.0, 0.0, 1.0, 0.0},
-            //     {0.0, 0.0, 0.0, 1.0},
-            // };
+            matrix4 model = {
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0,
+            };
 
-            matrix4_position_transformation(identityMatrix4, n_pos);
-            
-            // matrix4 model = {
-            //     {cos(rot_speed), 0.0, -sin(rot_speed), 0.0},
-            //     {0.0, 1.0, 0.0, 0.0},
-            //     {sin(rot_speed), 0.0, cos(rot_speed), 0.0},
-            //     {n_pos.x, n_pos.y, n_pos.z, 1.0},
-            // };
+            matrix4_position_translation(model, n_pos);
+
+            // y-axis
+            model[0][0] = cos(rot_speed);
+            model[0][2] = -sin(rot_speed);
+            model[2][0] = sin(rot_speed);
+            model[2][2] = cos(rot_speed);
+
+            //x-axis
+            // model[5] = cos(rot_speed);
+            // model[6] = -sin(rot_speed);
+            // model[9] = sin(rot_speed);
+            // model[10] = cos(rot_speed);
+
 
             rot_speed += 0.0001f;
-
 
             glUseProgram( shaders );
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)model);

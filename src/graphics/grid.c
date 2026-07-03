@@ -139,8 +139,12 @@ void draw_grid(Grid *g, const float* view, float* projection){
         printf("Failed to get uniform view in grid shader\n");
     }
 
+    matrix4 grid_model;
+
+    matrix4_init_identity(grid_model);
+
     GLuint modelLoc = glGetUniformLocation(grid_shaders, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, identityMatrix4);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)grid_model);
         if(modelLoc == -1){
         printf("Failed to get uniform model in grid shader\n");
     }

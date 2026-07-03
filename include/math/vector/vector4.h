@@ -4,10 +4,11 @@
 //3 Dimensional Vector
 typedef struct 
 {
-    double x; 
-    double y;
-    double z;
-    double w;
+    float x; 
+    float y;
+    float z;
+    float w;
+
 } vector4;
 
 // normalize a 4d vector to something that opengl can render
