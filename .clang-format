@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+PointerAlignment: Left
+SpaceBeforeParens: Never
+ColumnLimit: 0
+SortIncludes: Never
