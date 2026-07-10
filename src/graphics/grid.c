@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "graphics/grid.h"
-#include "math/vector/vector3.h"
 #include "math/matrix/matrix4.h"
 #include "utils/shaders_parser.h"
 
@@ -121,26 +120,25 @@ void init_grid(Grid *g){
 }
 
 
-void draw_grid(Grid *g, const float* view, float* projection){
+void draw_grid(Grid *g,matrix4 view, matrix4 projection){
 
     GLuint grid_shaders = g->shaders;
 
     glUseProgram( grid_shaders );
 
     GLuint projLoc = glGetUniformLocation(grid_shaders, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, (const GLfloat *)projection);
     if(projLoc == -1){
         printf("Failed to get uniform projection in grid shader\n");
     }
 
     GLuint viewLoc = glGetUniformLocation(grid_shaders, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)view);
         if(viewLoc == -1){
         printf("Failed to get uniform view in grid shader\n");
     }
 
     matrix4 grid_model;
-
     matrix4_init_identity(grid_model);
 
     GLuint modelLoc = glGetUniformLocation(grid_shaders, "model");
