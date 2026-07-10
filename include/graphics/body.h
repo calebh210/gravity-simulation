@@ -53,8 +53,8 @@ typedef struct body_3d
     GLuint vbo;
     GLuint vao;
     vector3 pos;
-    vector3 init_pos; // where the body started - used in translations
     vector3 velocity;
+    vector3 rotation; // current orientation of the body
     Orbit* orbit;
     bool has_texture; // boolean flag for if a texture is defined
     char* texture_path; //path to a image file to use as a texturee

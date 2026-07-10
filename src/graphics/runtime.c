@@ -32,7 +32,7 @@ void add_new_body(Scene* scene){
 
     float n;
 
-    printf("Enter X Pos for new obj: ");
+    printf("Enter X Pos for new obj: \n");
 
     scanf("%f", &n);
 
@@ -53,13 +53,11 @@ void add_new_body(Scene* scene){
 
 
     double mass;
-    printf("Enter Mass for new obj: ");
+    printf("Enter Mass for new obj: \n");
     scanf("%lf", &mass);
 
     b->radius = 100E8;
     b->mass = mass;
-
-    printf("mass = %lf", b->mass);
 
     b->has_texture = false;
     b->has_model = false;

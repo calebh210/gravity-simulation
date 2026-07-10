@@ -3,6 +3,7 @@
 
 #include <glad.h>
 #include <GLFW/glfw3.h>
+#include "math/matrix/matrix4.h"
 
 typedef struct Grid{
     GLuint vbo;
@@ -11,6 +12,6 @@ typedef struct Grid{
 } Grid;
 
 void init_grid(Grid *g);
-void draw_grid(Grid *g, const float* view, float* projection);
+void draw_grid(Grid *g, matrix4 view, matrix4 projection);
 
 #endif

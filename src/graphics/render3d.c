@@ -152,6 +152,9 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies){
         // Init the orbit path
         bodies_array[i]->orbit = initOrbit();
 
+        // Init the rotation to 0,0,0 (I might want to use quats eventually?)
+        b->rotation = (vector3){0.0f, 0.0f, 0.0f};
+
         glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
 
         size_t total_size = (vertices.size + normals.size) * sizeof(vector3) + (uvs.size * sizeof(vector2));
@@ -239,12 +242,22 @@ void render3d(Scene* scene){
     float far = 10000.0f;
     float f = 1.0f / tanf(fov / 2.0f);
 
-    float projection[16] = {
+    matrix4 projection;
+    matrix4_init_identity(projection);  
+    projection[0][0] = f/aspect;
+    projection[1][1] = f;
+    projection[2][2] = (far+near)/(near-far);
+    projection[2][3] = -1;
+    projection[2][2] = (2*far*near)/(near-far);
+
+    /* The above matrix looks like: 
+    {
         f/aspect, 0, 0,  0,
         0, f, 0,  0,
         0, 0, (far+near)/(near-far), -1,
         0, 0, (2*far*near)/(near-far), 0
     };
+    */
 
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram( orbit_shader );
@@ -252,11 +265,9 @@ void render3d(Scene* scene){
     glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat *)projection);
 
     // Setup the camera
-
     scene->cam = malloc(sizeof(Camera));
 
     vector3 cameraPosDefault = {0, 0.4f,1.5f};
-
     // vector3 cameraPosDefault = {0, 0.0f,0.0f};
     
     scene->cam->pos = cameraPosDefault;
@@ -366,11 +377,8 @@ void render3d(Scene* scene){
 
     glUniform1i(numLightSourcesLoc, numLightSources);
 
-    float rot_speed = 0.001f;
-
 
     while ( !glfwWindowShouldClose( window ) ) {
-
 
         // these are just pointers to the scene objects so that my var definitions arent super long
         Camera *cam = scene->cam;
@@ -451,8 +459,11 @@ void render3d(Scene* scene){
         vector3 cameraDirection = vec3_unit_vector(subtract_vec3s(cam->pos, cameraTarget));
         vector3 cameraRight = vec3_unit_vector(cross_product(up, cameraDirection));
         vector3 cameraUp = cross_product(cameraDirection, cameraRight);
-        // View  Rotation Matrix Matrix
-        matrix4 view = {
+
+        // View Matrix
+        matrix4 view;
+        // I want to abstract this away, but it's probably easier to work with in this format?
+        float view_float[16] = {
             cameraRight.x, cameraUp.x, cameraDirection.x, 0,
             cameraRight.y, cameraUp.y, cameraDirection.y, 0,
             cameraRight.z, cameraUp.z, cameraDirection.z, 0,
@@ -462,13 +473,15 @@ void render3d(Scene* scene){
                 ,1
         };
 
+        matrix4_init_from_float(view_float, view);
+
         cam->right = cameraRight;
         cam->up = cameraUp;
 
         glfwPollEvents();
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( shaders );
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, (const GLfloat *)projection);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)view);
 
         // this updates the view model as needed for the orbit shaders
@@ -525,30 +538,23 @@ void render3d(Scene* scene){
                 planetGridPos[i] = n_pos_grid;
             }
 
-            // this is just an identity matrix
-            matrix4 model = {
-                1.0, 0.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                0.0, 0.0, 0.0, 1.0,
-            };
+            matrix4 translation;
+            matrix4_init_identity(translation);
+            matrix4_position_translation(translation, n_pos);
 
-            matrix4_position_translation(model, n_pos);
+            // X * Y * Z matrixes 
+            // Quats would probably be better here?
+            matrix4 rot_matrix;
+            matrix4_rotation_transformation(b->rotation, rot_matrix);
 
-            // y-axis
-            model[0][0] = cos(rot_speed);
-            model[0][2] = -sin(rot_speed);
-            model[2][0] = sin(rot_speed);
-            model[2][2] = cos(rot_speed);
+            // total model matrix (translation * rotation)
+            matrix4 model;
+            matrix4_by_matrix4(translation, rot_matrix, model);
 
-            //x-axis
-            // model[5] = cos(rot_speed);
-            // model[6] = -sin(rot_speed);
-            // model[9] = sin(rot_speed);
-            // model[10] = cos(rot_speed);
-
-
-            rot_speed += 0.0001f;
+            // Fake rotation to test with
+            b->rotation.x += 0.0001f;
+            b->rotation.y += 0.0001f;
+            b->rotation.z += 0.0001f;
 
             glUseProgram( shaders );
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat *)model);
@@ -563,11 +569,12 @@ void render3d(Scene* scene){
 
             glBindVertexArray( b->vao );
 
+            // TODO: Revisit how I'm doing this lighting
             // Check if a body is defined as a star
             // If yes, give is an ambient strength of max and add it as a light source (iffy)
             if(b->type == STAR){
                 glUniform1f(diffuseStrengthLoc, 1.0f);
-                memcpy(lightModel[i], model, sizeof(model));
+                matrix4_copy(model, lightModel[i]);
 
                 // keep it always bright (like a star)
                 glUniform1f(ambientStrengthLoc, 1.0f);
@@ -594,7 +601,7 @@ void render3d(Scene* scene){
             glUniform1fv(10, num_bodies, (const GLfloat *)grid_radius);
             glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat *)grid_r_s);
             glUniform3fv(gridPosLoc, num_bodies, (const GLfloat *)planetGridPos);
-            draw_grid(g, (const GLfloat *)view, projection);
+            draw_grid(g, view, projection);
         }
 
         glfwSwapBuffers( window );
