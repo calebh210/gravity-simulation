@@ -14,6 +14,9 @@
 #include "graphics/loader/obj_loader.h"
 #include "graphics/scene.h"
 
+// OpenGL reference: https://antongerdelan.net/opengl/hellotriangle.html
+// Render Timestep reference: https://gafferongames.com/post/fix_your_timestep/
+
 GLFWwindow* init_render() {
 
     if(!glfwInit()) {
@@ -212,7 +215,7 @@ void show_debug_message(int run, double nbFrames, body_3d* bodies_array[],
 }
 
 void step_physics_3d(body_3d* bodies[], int num_bodies,
-                     enum REFERENCE_FRAME frame, float sim_dt) {
+                     enum REFERENCE_FRAME frame, float sim_t, float sim_dt) {
     // This is the main equation driving the physics
     switch(frame) {
 
@@ -221,7 +224,7 @@ void step_physics_3d(body_3d* bodies[], int num_bodies,
         break;
 
     case N_BODY:
-        rk4_nbody_3d(0, sim_dt, bodies, num_bodies);
+        rk4_nbody_3d(sim_t, sim_dt, bodies, num_bodies);
         break;
 
     default:
@@ -233,7 +236,7 @@ void render3d(Scene* scene) {
 
     int num_bodies = scene->num_bodies;
     bool debug = scene->config->debug;
-    float timeskip = scene->config->time_delta;
+    const float TIMESKIP = scene->config->time_delta;
 
     // start glfw and glad
     GLFWwindow* window = init_render();
@@ -274,20 +277,11 @@ void render3d(Scene* scene) {
     projection[1][1] = f;
     projection[2][2] = (far+near)/(near-far);
     projection[2][3] = -1;
-    projection[2][2] = (2*far*near)/(near-far);
-
-    /* The above matrix looks like: 
-    {
-        f/aspect, 0, 0,  0,
-        0, f, 0,  0,
-        0, 0, (far+near)/(near-far), -1,
-        0, 0, (2*far*near)/(near-far), 0
-    };
-    */
+    projection[3][2] = (2*far*near)/(near-far);
 
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram(orbit_shader);
-    glUniformMatrix4fv(1, 1, GL_TRUE, (const GLfloat*)MATRIX4_IDENTITY_MATRIX);
+    glUniformMatrix4fv(1, 1, GL_FALSE, (const GLfloat*)MATRIX4_IDENTITY_MATRIX);
     glUniformMatrix4fv(3, 1, GL_FALSE, (const GLfloat*)projection);
 
     // Setup the camera
@@ -326,12 +320,6 @@ void render3d(Scene* scene) {
     vector3 planetGridPos[num_bodies];
     float grid_r_s[num_bodies];
     float grid_radius[num_bodies];
-
-    double lastTime = glfwGetTime(); // Time of the last debug message
-    float lastFrame = 0.0f;          // Time of the last frame
-    float deltaTime = 0.0f;          // Time between current frame and last frame
-    int nbFrames = 0;
-    int run = 0;
 
     glUseProgram(shaders);
 
@@ -408,10 +396,17 @@ void render3d(Scene* scene) {
 
     float rot_speed = 0.001f;
 
+    // TODO! There's too many here
     const double FIXED_DT = 1.0 / 240.0;
+    float sim_t = 0.0;
     const double MAX_FRAME_TIME = 0.25;
     double accumulator = 0.0;
-    lastFrame = glfwGetTime();
+    double lastTime = glfwGetTime(); // Time of the last debug message
+    double lastDebugTime = glfwGetTime(); 
+    float lastFrame = 0.0f;          // Time of the last frame
+    float deltaTime = 0.0f;          // Time between current frame and last frame
+    int nbFrames = 0;
+    int run = 0;
 
     while(!glfwWindowShouldClose(window)) {
 
@@ -422,45 +417,47 @@ void render3d(Scene* scene) {
         nbFrames++;
         run++;
         // Frame timer
-        double currentTime = glfwGetTime();
-        deltaTime = currentTime - lastFrame;
-        lastFrame = currentTime;
+        double currentTime = glfwGetTime(); // newTime
+        deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
 
         double frameTime = deltaTime;
         if(frameTime > MAX_FRAME_TIME) {
             frameTime = MAX_FRAME_TIME;
         }
-        accumulator += frameTime;
+        accumulator += frameTime * TIMESKIP; // Sim time is renderTime * TIMESKIP. Ex: if timeskip is 5, physics renders at 5x realtime
 
         enum REFERENCE_FRAME frame = scene->config->ref_frame;
 
         while(accumulator >= FIXED_DT) {
-            step_physics_3d(scene->bodies_array, scene->num_bodies, frame, timeskip);
+            step_physics_3d(scene->bodies_array, scene->num_bodies, frame, sim_t, FIXED_DT);
             accumulator -= FIXED_DT;
+            sim_t += FIXED_DT;        
         }
 
-        if(currentTime - lastTime >= 1.0 &&
+        if(currentTime - lastDebugTime >= 1.0 &&
            debug) { // If last prinf() was more than 1 sec ago
             show_debug_message(run, nbFrames, scene->bodies_array, scene->num_bodies);
             if(cam->tracking) {
                 vector3 body_pos = normalize_vec3(
                     scene->bodies_array[cam->tracked_body]->pos, SPACE_MIN, SPACE_MAX);
-                printf("cam pos: (%.3f, %.3f, %.3f) | body pos: (%.3f, %.3f, %.3f) | "
+                printf("\ncam pos: (%.3f, %.3f, %.3f) | body pos: (%.3f, %.3f, %.3f) | "
                        "offset: (%.3f, %.3f, %.3f)\n",
                        cam->pos.x, cam->pos.y, cam->pos.z, body_pos.x, body_pos.y,
                        body_pos.z, cam->tracking_vector.r, cam->tracking_vector.az,
                        cam->tracking_vector.el);
             }
-            lastTime += 1.0;
+            lastDebugTime += 1.0;
             nbFrames = 0;
         }
 
-        if(currentTime - lastTime >= 1.0) {
+        if(currentTime - lastDebugTime >= 1.0) {
 
             scene->framerate = (double)nbFrames / 1.0;
-            lastTime += 1.0;
+            lastDebugTime += 1.0;
             nbFrames = 0;
         }
+
 
         body_3d** bodies_array = scene->bodies_array;
 
@@ -519,20 +516,16 @@ void render3d(Scene* scene) {
         vector3 cameraRight = vec3_unit_vector(cross_product(up, cameraDirection));
         vector3 cameraUp = cross_product(cameraDirection, cameraRight);
 
-        // View Matrix
-        matrix4 view;
         // I want to abstract this away, but it's probably easier to work with in this format?
-        float view_float[16] = {
-            cameraRight.x, cameraUp.x, cameraDirection.x, 0,
-            cameraRight.y, cameraUp.y, cameraDirection.y, 0,
-            cameraRight.z, cameraUp.z, cameraDirection.z, 0,
-               (-1) * dot_vec3s(cameraRight, cam->pos),
+        matrix4 view = {
+            {cameraRight.x, cameraUp.x, cameraDirection.x, 0},
+            {cameraRight.y, cameraUp.y, cameraDirection.y, 0},
+            {cameraRight.z, cameraUp.z, cameraDirection.z, 0},
+            {   (-1) * dot_vec3s(cameraRight, cam->pos),
                 (-1) * dot_vec3s(cameraUp, cam->pos),
                 (-1) * dot_vec3s(cameraDirection, cam->pos)
-                ,1
+                ,1}
         };
-
-        matrix4_init_from_float(view_float, view);
 
         cam->right = cameraRight;
         cam->up = cameraUp;
@@ -562,7 +555,7 @@ void render3d(Scene* scene) {
             // in the orbit path once every N frames where N is the ORBIT_SAMPLING var
             if(scene->config->draw_orbits) {
 
-                int ORBIT_SAMPLING = 500;
+                int ORBIT_SAMPLING = 1; // TODO! Look into removing this. With decoupled physics and rendering, I think its unneeded?
 
                 if(run % ORBIT_SAMPLING == 0) {
                     updateOrbits(b->orbit, n_pos);
@@ -651,6 +644,7 @@ void render3d(Scene* scene) {
 
         glfwSwapBuffers(window);
     }
+
     glfwDestroyWindow(window);
     glfwTerminate();
 
