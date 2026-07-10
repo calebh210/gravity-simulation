@@ -37,7 +37,7 @@ GLFWwindow* init_render() {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     if(!gladLoadGL()) {
         fprintf(stderr, "Failed to initialize GLAD\n");
@@ -224,7 +224,7 @@ void step_physics_3d(body_3d* bodies[], int num_bodies,
         break;
 
     case N_BODY:
-        rk4_nbody_3d(sim_t, sim_dt, bodies, num_bodies);
+        rk4_nbody_3d(0, sim_dt, bodies, num_bodies);
         break;
 
     default:
@@ -272,7 +272,7 @@ void render3d(Scene* scene) {
     float f = 1.0f / tanf(fov / 2.0f);
 
     matrix4 projection;
-    matrix4_init_identity(projection);  
+    matrix4_init_empty(projection);  
     projection[0][0] = f/aspect;
     projection[1][1] = f;
     projection[2][2] = (far+near)/(near-far);
@@ -395,9 +395,10 @@ void render3d(Scene* scene) {
     glUniform1i(numLightSourcesLoc, numLightSources);
 
     float rot_speed = 0.001f;
+    
 
     // TODO! There's too many here
-    const double FIXED_DT = 1.0 / 240.0;
+    const double FIXED_DT = (1.0 / 240.0);
     float sim_t = 0.0;
     const double MAX_FRAME_TIME = 0.25;
     double accumulator = 0.0;
@@ -425,14 +426,18 @@ void render3d(Scene* scene) {
         if(frameTime > MAX_FRAME_TIME) {
             frameTime = MAX_FRAME_TIME;
         }
-        accumulator += frameTime * TIMESKIP; // Sim time is renderTime * TIMESKIP. Ex: if timeskip is 5, physics renders at 5x realtime
+
+        // TODO! Look into why this doesnt work. It was causing a bug where the sim would just stop??
+        // accumulator += frameTime * TIMESKIP; // Sim time is renderTime * TIMESKIP. Ex: if timeskip is 5, physics renders at 5x realtime
+
+        accumulator += frameTime;
 
         enum REFERENCE_FRAME frame = scene->config->ref_frame;
-
+        
         while(accumulator >= FIXED_DT) {
-            step_physics_3d(scene->bodies_array, scene->num_bodies, frame, sim_t, FIXED_DT);
+            step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, FIXED_DT * TIMESKIP); // This is temp
             accumulator -= FIXED_DT;
-            sim_t += FIXED_DT;        
+            // sim_t += FIXED_DT;        
         }
 
         if(currentTime - lastDebugTime >= 1.0 &&
@@ -447,6 +452,7 @@ void render3d(Scene* scene) {
                        body_pos.z, cam->tracking_vector.r, cam->tracking_vector.az,
                        cam->tracking_vector.el);
             }
+            printf("\nFrametime = %lf\nAccumulator = %lf\n", frameTime, accumulator);
             lastDebugTime += 1.0;
             nbFrames = 0;
         }
@@ -555,7 +561,7 @@ void render3d(Scene* scene) {
             // in the orbit path once every N frames where N is the ORBIT_SAMPLING var
             if(scene->config->draw_orbits) {
 
-                int ORBIT_SAMPLING = 1; // TODO! Look into removing this. With decoupled physics and rendering, I think its unneeded?
+                int ORBIT_SAMPLING = 10; // TODO! Look into removing this. With decoupled physics and rendering, I think its unneeded?
 
                 if(run % ORBIT_SAMPLING == 0) {
                     updateOrbits(b->orbit, n_pos);

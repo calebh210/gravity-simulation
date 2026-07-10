@@ -11,12 +11,18 @@
 typedef float matrix4 [4][4];
 
 // Inspired by CGLM
+
+#define MATRIX4_EMPTY_MATRIX_INIT  {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}
+
 #define MATRIX4_IDENTITY_MATRIX_INIT  {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
 #define MATRIX4_IDENTITY_MATRIX       ((matrix4)MATRIX4_IDENTITY_MATRIX_INIT)
 
 // init matrix4 as an identity matrix
 void matrix4_init_identity(matrix4 m);
+
+// init matrix4 as an empty matrix
+void matrix4_init_empty(matrix4 m);
 
 // takes a float[16] and fills in the matrix4 from it
 void matrix4_init_from_float(float* in, matrix4 out);

@@ -32,6 +32,13 @@ void matrix4_init_identity(matrix4 m){
     
 }
 
+void matrix4_init_empty(matrix4 m){
+    matrix4 temp = MATRIX4_EMPTY_MATRIX_INIT;
+
+    matrix4_copy(temp, m);
+    
+}
+
 // takes a float[16] and fills in the matrix4 from it
 void matrix4_init_from_float(float* in, matrix4 out){
 
