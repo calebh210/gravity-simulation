@@ -398,8 +398,8 @@ void render3d(Scene* scene) {
     
 
     // TODO! There's too many here
-    const double FIXED_DT = (1.0 / 240.0);
-    float sim_t = 0.0;
+    const double FIXED_DT = (1.0 / 240.0); // this is what we render at
+    const double DT = 1; // this is our h value in the integration function
     const double MAX_FRAME_TIME = 0.25;
     double accumulator = 0.0;
     double lastTime = glfwGetTime(); // Time of the last debug message
@@ -433,11 +433,17 @@ void render3d(Scene* scene) {
         accumulator += frameTime;
 
         enum REFERENCE_FRAME frame = scene->config->ref_frame;
-        
+
+        // step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, TIMESKIP); // This is temp
+
         while(accumulator >= FIXED_DT) {
-            step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, FIXED_DT * TIMESKIP); // This is temp
+
+
+            for(int i = 0; i < TIMESKIP; i++){
+                step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, DT); 
+                // sim_t += FIXED_DT;        
+            }
             accumulator -= FIXED_DT;
-            // sim_t += FIXED_DT;        
         }
 
         if(currentTime - lastDebugTime >= 1.0 &&
@@ -561,7 +567,7 @@ void render3d(Scene* scene) {
             // in the orbit path once every N frames where N is the ORBIT_SAMPLING var
             if(scene->config->draw_orbits) {
 
-                int ORBIT_SAMPLING = 10; // TODO! Look into removing this. With decoupled physics and rendering, I think its unneeded?
+                int ORBIT_SAMPLING = 50; // TODO! Look into removing this. With decoupled physics and rendering, I think its unneeded?
 
                 if(run % ORBIT_SAMPLING == 0) {
                     updateOrbits(b->orbit, n_pos);
