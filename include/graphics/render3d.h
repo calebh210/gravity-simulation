@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <glad.h>
-//#include <unistd.h>
+// #include <unistd.h>
 #include <GLFW/glfw3.h>
 #include "utils/utils.h"
 #include "utils/constants.h"
@@ -13,7 +13,7 @@
 #include "graphics/scene.h"
 #include "graphics/camera.h"
 
-//inits glad and glfw
+// inits glad and glfw
 GLFWwindow* init_render();
 
 // init shader object

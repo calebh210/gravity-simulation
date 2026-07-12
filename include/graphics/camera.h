@@ -3,7 +3,7 @@
 
 #include "math/vector/vector3.h"
 
-typedef struct Camera{
+typedef struct Camera {
     vector3 pos;
     float yaw;
     float pitch;

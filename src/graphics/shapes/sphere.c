@@ -6,20 +6,19 @@
 // TODO: Implement an Icosphere
 // https://songho.ca/opengl/gl_sphere.html
 
-void drawSphere(float r, int sector_count, int stack_count, vector3_da *out_vertices, vector3_da *out_normals, vector2_da *out_uvs) {
-
+void drawSphere(float r, int sector_count, int stack_count, vector3_da* out_vertices, vector3_da* out_normals, vector2_da* out_uvs) {
 
     float sectorStep = 2 * PI / sector_count;
     float stackStep = PI / stack_count;
-    
-    for (int i = 0; i < stack_count  ; i++) {
+
+    for(int i = 0; i < stack_count; i++) {
 
         float stackAngle = i * stackStep;
         float stackAngleNext = (i + 1) * stackStep;
 
         // float xy = r * cosf(stackAngle);
 
-        for(int j = 0; j < sector_count; j++){
+        for(int j = 0; j < sector_count; j++) {
 
             float sectorAngle = j * sectorStep;
             float sectorAngleNext = (j + 1) * sectorStep;
@@ -46,14 +45,14 @@ void drawSphere(float r, int sector_count, int stack_count, vector3_da *out_vert
             vector3 p4 = {x4, y4, z4};
 
             // for an openGL sphere the center is always locally 0
-            vector3 center = {0,0,0};
- 
-            //normals for the mesh
+            vector3 center = {0, 0, 0};
+
+            // normals for the mesh
             vector3 n1 = vec3_unit_vector(subtract_vec3s(p1, center));
             vector3 n2 = vec3_unit_vector(subtract_vec3s(p2, center));
             vector3 n3 = vec3_unit_vector(subtract_vec3s(p3, center));
             vector3 n4 = vec3_unit_vector(subtract_vec3s(p4, center));
-            
+
             // triangle 1
             vector3_da_push(out_vertices, p1);
             vector3_da_push(out_normals, n1);
@@ -74,7 +73,6 @@ void drawSphere(float r, int sector_count, int stack_count, vector3_da *out_vert
             vector3_da_push(out_vertices, p2);
             vector3_da_push(out_normals, n2);
 
-
             float s0 = (float)j / sector_count;
             float s1 = (float)(j + 1) / sector_count;
 
@@ -92,13 +90,6 @@ void drawSphere(float r, int sector_count, int stack_count, vector3_da *out_vert
             vector2_da_push(out_uvs, uv3);
             vector2_da_push(out_uvs, uv4);
             vector2_da_push(out_uvs, uv2);
-
-            
-
         }
-
     }
-
 }
-
-

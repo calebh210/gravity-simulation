@@ -8,15 +8,15 @@
 // For example, location [3][0] is the first element of the 4th column
 
 // Should I define this a struct?
-typedef float matrix4 [4][4];
+typedef float matrix4[4][4];
 
 // Inspired by CGLM
 
-#define MATRIX4_EMPTY_MATRIX_INIT  {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}
+#define MATRIX4_EMPTY_MATRIX_INIT {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}
 
-#define MATRIX4_IDENTITY_MATRIX_INIT  {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
+#define MATRIX4_IDENTITY_MATRIX_INIT {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
-#define MATRIX4_IDENTITY_MATRIX       ((matrix4)MATRIX4_IDENTITY_MATRIX_INIT)
+#define MATRIX4_IDENTITY_MATRIX ((matrix4)MATRIX4_IDENTITY_MATRIX_INIT)
 
 // init matrix4 as an identity matrix
 void matrix4_init_identity(matrix4 m);

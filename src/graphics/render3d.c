@@ -158,7 +158,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies) {
         // Init the rotation to 0,0,0 (I might want to use quats eventually?)
         b->rotation = (vector3){0.0f, 0.0f, 0.0f};
 
-        glBindBuffer( GL_ARRAY_BUFFER, b->vbo );
+        glBindBuffer(GL_ARRAY_BUFFER, b->vbo);
 
         size_t total_size = (vertices.size + normals.size) * sizeof(vector3) +
                             (uvs.size * sizeof(vector2));
@@ -214,28 +214,34 @@ void show_debug_message(int run, double nbFrames, body_3d* bodies_array[],
     }
 }
 
-
-void step_rotation_3d(body_3d* bodies[], int num_bodies){
+void step_rotation_3d(body_3d* bodies[], int num_bodies) {
 
     // float rotational_period = 1.0f * 86400; // 1 day
 
-    for(int i = 0; i < num_bodies; i++){
+    for(int i = 0; i < num_bodies; i++) {
 
         body_3d* b = bodies[i];
 
-        // I can probably do this calc once earlier and save it somewhere? 
+        // I can probably do this calc once earlier and save it somewhere?
         // TODO!
-        if(b->rotational_period.x != 0.0f){ float angle_per_second_x = TWO_PI / b->rotational_period.x; b->rotation.x += angle_per_second_x;}
-        if(b->rotational_period.y != 0.0f){ float angle_per_second_y = TWO_PI / b->rotational_period.y; b->rotation.y += angle_per_second_y;}
-        if(b->rotational_period.z != 0.0f){ float angle_per_second_z = TWO_PI / b->rotational_period.z; b->rotation.z += angle_per_second_z;}
-
+        if(b->rotational_period.x != 0.0f) {
+            float angle_per_second_x = TWO_PI / b->rotational_period.x;
+            b->rotation.x += angle_per_second_x;
+        }
+        if(b->rotational_period.y != 0.0f) {
+            float angle_per_second_y = TWO_PI / b->rotational_period.y;
+            b->rotation.y += angle_per_second_y;
+        }
+        if(b->rotational_period.z != 0.0f) {
+            float angle_per_second_z = TWO_PI / b->rotational_period.z;
+            b->rotation.z += angle_per_second_z;
+        }
     }
-
 }
 
 void step_physics_3d(body_3d* bodies[], int num_bodies,
                      enum REFERENCE_FRAME frame, float sim_t, float sim_dt) {
-                        
+
     // This is the main equation driving the physics
     switch(frame) {
 
@@ -252,7 +258,6 @@ void step_physics_3d(body_3d* bodies[], int num_bodies,
     }
 
     step_rotation_3d(bodies, num_bodies);
-
 }
 
 void render3d(Scene* scene) {
@@ -295,12 +300,12 @@ void render3d(Scene* scene) {
     float f = 1.0f / tanf(fov / 2.0f);
 
     matrix4 projection;
-    matrix4_init_empty(projection);  
-    projection[0][0] = f/aspect;
+    matrix4_init_empty(projection);
+    projection[0][0] = f / aspect;
     projection[1][1] = f;
-    projection[2][2] = (far+near)/(near-far);
+    projection[2][2] = (far + near) / (near - far);
     projection[2][3] = -1;
-    projection[3][2] = (2*far*near)/(near-far);
+    projection[3][2] = (2 * far * near) / (near - far);
 
     // Orbit.vert uses a static layout for the location of its uniforms
     glUseProgram(orbit_shader);
@@ -310,7 +315,7 @@ void render3d(Scene* scene) {
     // Setup the camera
     scene->cam = malloc(sizeof(Camera));
 
-    vector3 cameraPosDefault = {0, 0.4f,1.5f};
+    vector3 cameraPosDefault = {0, 0.4f, 1.5f};
     // vector3 cameraPosDefault = {0, 0.0f,0.0f};
 
     scene->cam->pos = cameraPosDefault;
@@ -419,13 +424,13 @@ void render3d(Scene* scene) {
 
     // TODO! There's too many here
     const double FIXED_DT = (1.0 / 240.0); // this is what we render at
-    const double DT = 1; // this is our h value in the integration function
+    const double DT = 1;                   // this is our h value in the integration function
     const double MAX_FRAME_TIME = 0.25;
     double accumulator = 0.0;
     double lastTime = glfwGetTime(); // Time of the last debug message
-    double lastDebugTime = glfwGetTime(); 
-    float lastFrame = 0.0f;          // Time of the last frame
-    float deltaTime = 0.0f;          // Time between current frame and last frame
+    double lastDebugTime = glfwGetTime();
+    float lastFrame = 0.0f; // Time of the last frame
+    float deltaTime = 0.0f; // Time between current frame and last frame
     int nbFrames = 0;
     int physicsFrames = 0;
     int run = 0;
@@ -463,11 +468,10 @@ void render3d(Scene* scene) {
 
         while(accumulator >= FIXED_DT) {
 
-
-            for(int i = 0; i < TIMESKIP; i++){
-                step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, DT); 
+            for(int i = 0; i < TIMESKIP; i++) {
+                step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, DT);
                 physicsFrames++;
-                // sim_t += FIXED_DT;        
+                // sim_t += FIXED_DT;
             }
             accumulator -= FIXED_DT;
         }
@@ -495,7 +499,6 @@ void render3d(Scene* scene) {
             lastDebugTime += 1.0;
             nbFrames = 0;
         }
-
 
         body_3d** bodies_array = scene->bodies_array;
 
@@ -559,20 +562,18 @@ void render3d(Scene* scene) {
             {cameraRight.x, cameraUp.x, cameraDirection.x, 0},
             {cameraRight.y, cameraUp.y, cameraDirection.y, 0},
             {cameraRight.z, cameraUp.z, cameraDirection.z, 0},
-            {   (-1) * dot_vec3s(cameraRight, cam->pos),
-                (-1) * dot_vec3s(cameraUp, cam->pos),
-                (-1) * dot_vec3s(cameraDirection, cam->pos)
-                ,1}
-        };
+            {(-1) * dot_vec3s(cameraRight, cam->pos),
+             (-1) * dot_vec3s(cameraUp, cam->pos),
+             (-1) * dot_vec3s(cameraDirection, cam->pos), 1}};
 
         cam->right = cameraRight;
         cam->up = cameraUp;
 
         glfwPollEvents();
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-        glUseProgram( shaders );
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, (const GLfloat *)projection);
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat *)view);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(shaders);
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, (const GLfloat*)projection);
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*)view);
 
         // this updates the view model as needed for the orbit shaders
         // orbit.vert has location 2 static set to the view matrix
@@ -618,7 +619,7 @@ void render3d(Scene* scene) {
             matrix4_init_identity(translation);
             matrix4_position_translation(translation, n_pos);
 
-            // X * Y * Z matrixes 
+            // X * Y * Z matrixes
             // Quats would probably be better here?
             matrix4 rot_matrix;
             matrix4_rotation_transformation(b->rotation, rot_matrix);
@@ -670,9 +671,9 @@ void render3d(Scene* scene) {
 
         if(scene->config->draw_grid) {
             glUseProgram(g->shaders);
-            glUniform1fv(10, num_bodies, (const GLfloat *)grid_radius);
-            glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat *)grid_r_s);
-            glUniform3fv(gridPosLoc, num_bodies, (const GLfloat *)planetGridPos);
+            glUniform1fv(10, num_bodies, (const GLfloat*)grid_radius);
+            glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat*)grid_r_s);
+            glUniform3fv(gridPosLoc, num_bodies, (const GLfloat*)planetGridPos);
             draw_grid(g, view, projection);
         }
 

@@ -5,15 +5,15 @@
 #include "utils/utils.h"
 #include "graphics/text.h"
 
-typedef struct Settings{
+typedef struct Settings {
     bool draw_grid;
     bool draw_orbits;
     enum REFERENCE_FRAME ref_frame;
     float time_delta;
     bool debug;
-    char* font; // path to the font
+    char* font;   // path to the font
     FT_Setup* ft; // font object
-    
+
 } Settings;
 
 Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, int NUM_BODIES);

@@ -5,5 +5,4 @@
 
 void get_input(GLFWwindow* window, Scene* scene);
 
-
 #endif

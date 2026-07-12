@@ -4,7 +4,7 @@
 // Newton's gravitational constant
 extern const double G;
 
-//One Astronomical Unit
+// One Astronomical Unit
 extern const long AU;
 
 // number of frames to run for. -1 will be infinite
@@ -23,7 +23,7 @@ extern const double mass_earth;
 extern const double mass_sun;
 extern const double mass_sagA;
 
-//used for normalization
+// used for normalization
 extern const double SPACE_MIN;
 extern const double SPACE_MAX;
 

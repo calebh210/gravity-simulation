@@ -3,5 +3,4 @@
 
 char* parse_shader_file(const char* fpath);
 
-#endif 
-
+#endif

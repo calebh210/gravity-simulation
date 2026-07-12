@@ -4,27 +4,26 @@
 #include <glad.h>
 #include "math/vector/vector3.h"
 
-typedef struct rgb
-{
+typedef struct rgb {
     float r;
     float g;
     float b;
 
 } rgb;
 
-typedef struct point{
+typedef struct point {
     vector3 pos;
-    struct point *next;
+    struct point* next;
 } point;
 
-typedef struct points_list{
-    point *head;
+typedef struct points_list {
+    point* head;
     int count;
 } points_list;
 
 points_list* init_list();
-void add_to_list(points_list *pL, point *p);
-void add_to_list_head(points_list *pL, point *p);
-void free_list(points_list *pL);
+void add_to_list(points_list* pL, point* p);
+void add_to_list_head(points_list* pL, point* p);
+void free_list(points_list* pL);
 
 #endif

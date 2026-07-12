@@ -4,14 +4,12 @@
 #include "graphics/body.h"
 
 // this "generic" body object might help
-typedef struct body_t
-{
+typedef struct body_t {
     enum BODY_DIMENSIONS dimensions;
-    union 
-    {
-        body_2d* as_2d; 
+    union {
+        body_2d* as_2d;
         body_3d* as_3d;
-    }t;
+    } t;
 
 } body_t;
 
