@@ -54,6 +54,7 @@ typedef struct body_3d
     GLuint vao;
     vector3 pos;
     vector3 velocity;
+    vector3 rotational_period; // time in sec it takes body to rotate 1 full time
     vector3 rotation; // current orientation of the body
     Orbit* orbit;
     bool has_texture; // boolean flag for if a texture is defined

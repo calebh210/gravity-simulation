@@ -214,8 +214,28 @@ void show_debug_message(int run, double nbFrames, body_3d* bodies_array[],
     }
 }
 
+
+void step_rotation_3d(body_3d* bodies[], int num_bodies){
+
+    // float rotational_period = 1.0f * 86400; // 1 day
+
+    for(int i = 0; i < num_bodies; i++){
+
+        body_3d* b = bodies[i];
+
+        // I can probably do this calc once earlier and save it somewhere? 
+        // TODO!
+        if(b->rotational_period.x != 0.0f){ float angle_per_second_x = TWO_PI / b->rotational_period.x; b->rotation.x += angle_per_second_x;}
+        if(b->rotational_period.y != 0.0f){ float angle_per_second_y = TWO_PI / b->rotational_period.y; b->rotation.y += angle_per_second_y;}
+        if(b->rotational_period.z != 0.0f){ float angle_per_second_z = TWO_PI / b->rotational_period.z; b->rotation.z += angle_per_second_z;}
+
+    }
+
+}
+
 void step_physics_3d(body_3d* bodies[], int num_bodies,
                      enum REFERENCE_FRAME frame, float sim_t, float sim_dt) {
+                        
     // This is the main equation driving the physics
     switch(frame) {
 
@@ -230,6 +250,9 @@ void step_physics_3d(body_3d* bodies[], int num_bodies,
     default:
         exit(1); // should never be reached
     }
+
+    step_rotation_3d(bodies, num_bodies);
+
 }
 
 void render3d(Scene* scene) {
@@ -394,9 +417,6 @@ void render3d(Scene* scene) {
 
     glUniform1i(numLightSourcesLoc, numLightSources);
 
-    float rot_speed = 0.001f;
-    
-
     // TODO! There's too many here
     const double FIXED_DT = (1.0 / 240.0); // this is what we render at
     const double DT = 1; // this is our h value in the integration function
@@ -407,7 +427,11 @@ void render3d(Scene* scene) {
     float lastFrame = 0.0f;          // Time of the last frame
     float deltaTime = 0.0f;          // Time between current frame and last frame
     int nbFrames = 0;
+    int physicsFrames = 0;
     int run = 0;
+
+    printf("DT = %lf\nEach Physics Frame = %lf seconds in simulation\n", DT, DT);
+    printf("1 Second Real-Time = %lf seconds in Sim Time\n", 240 * TIMESKIP);
 
     while(!glfwWindowShouldClose(window)) {
 
@@ -417,6 +441,7 @@ void render3d(Scene* scene) {
 
         nbFrames++;
         run++;
+
         // Frame timer
         double currentTime = glfwGetTime(); // newTime
         deltaTime = currentTime - lastTime;
@@ -441,6 +466,7 @@ void render3d(Scene* scene) {
 
             for(int i = 0; i < TIMESKIP; i++){
                 step_physics_3d(scene->bodies_array, scene->num_bodies, frame, 0, DT); 
+                physicsFrames++;
                 // sim_t += FIXED_DT;        
             }
             accumulator -= FIXED_DT;
@@ -458,7 +484,7 @@ void render3d(Scene* scene) {
                        body_pos.z, cam->tracking_vector.r, cam->tracking_vector.az,
                        cam->tracking_vector.el);
             }
-            printf("\nFrametime = %lf\nAccumulator = %lf\n", frameTime, accumulator);
+            printf("\nPhysics Frames = %d\n", physicsFrames);
             lastDebugTime += 1.0;
             nbFrames = 0;
         }
@@ -587,6 +613,7 @@ void render3d(Scene* scene) {
                 planetGridPos[i] = n_pos_grid;
             }
 
+            // These get re-made every time. Should they be? Is there a faster way?
             matrix4 translation;
             matrix4_init_identity(translation);
             matrix4_position_translation(translation, n_pos);
@@ -599,11 +626,6 @@ void render3d(Scene* scene) {
             // total model matrix (translation * rotation)
             matrix4 model;
             matrix4_by_matrix4(translation, rot_matrix, model);
-
-            // Fake rotation to test with
-            b->rotation.x += 0.0001f;
-            b->rotation.y += 0.0001f;
-            b->rotation.z += 0.0001f;
 
             glUseProgram(shaders);
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);

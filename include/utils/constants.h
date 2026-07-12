@@ -11,6 +11,7 @@ extern const long AU;
 #define RUN_LIMIT -1
 
 #define PI 3.14159265358979323846f
+#define TWO_PI 6.28318530718f
 #define DEG_TO_RAD (PI / 180.0f)
 #define RAD_TO_DEG (180.0f / PI)
 

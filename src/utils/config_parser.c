@@ -38,6 +38,7 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
     bool mass_next = false;
     bool pos_next = false;
     bool vel_next = false;
+    bool rot_next = false;
     bool radius_next = false;
     bool color_next = false;
     bool type_next = false;
@@ -107,6 +108,11 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
 
                 if(strcmp((const char*)event.data.scalar.value, "Radius") == 0){
                     radius_next = true;
+                    break;
+                }
+
+                if(strcmp((const char*)event.data.scalar.value, "Rotation") == 0){
+                    rot_next = true;
                     break;
                 }
 
@@ -282,6 +288,50 @@ Settings* parse_config_file(char* filename, body_t* bodies_array[], bool is_3d, 
                         vel_next = false;
                         break;
                     }
+                }
+
+                if(rot_next) {
+
+                    if(!is_3d){
+                        break; // 2d objects have no rotation
+
+                    } else {
+                                            
+                        char *token;
+                        char *stopstring;                                                   
+
+                        token = strtok((char*)event.data.scalar.value, ",");
+                        if(token == NULL){
+                            printf("Object missing velocity.x component\n");
+                            goto parsing_error;
+                        }
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.x = strtof(token, &stopstring);  
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.x *= 86400.0f; // to get it into seconds for math
+
+
+                        // Get the Y
+                        token = strtok(NULL, ","); 
+                        if(token == NULL){
+                            printf("Object missing velocity.y component\n");
+                            goto parsing_error;
+                        }
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.y = strtof(token, &stopstring); 
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.y *= 86400.0f; // to get it into seconds for math
+
+
+                        // Get the Z
+                        token = strtok(NULL, ","); 
+                        if(token == NULL){
+                            printf("3D Object missing velocity.z component\n");
+                            goto parsing_error;
+                        }
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.z = strtof(token, &stopstring);  
+                        bodies_array[NUM_BODIES_YAML]->t.as_3d->rotational_period.z *= 86400.0f; // to get it into seconds for math
+
+                    }
+                
+                    rot_next = false;
+                    break;
                 }
 
                 if(radius_next){
