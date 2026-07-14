@@ -13,6 +13,7 @@
 #include "utils/shaders_parser.h"
 #include "graphics/loader/obj_loader.h"
 #include "graphics/scene.h"
+#include "graphics/legend.h"
 
 // OpenGL reference: https://antongerdelan.net/opengl/hellotriangle.html
 // Render Timestep reference: https://gafferongames.com/post/fix_your_timestep/
@@ -274,7 +275,13 @@ void render3d(Scene* scene) {
     GLuint orbit_shader = init_orbit_shaders();
 
     // setup the text
-    scene->config->ft = ft_setup(scene->config->font);
+    FT_Setup* ft = ft_setup(scene->config->font);
+
+    char *text;
+    asprintf(&text, "Tracking Object: None");
+    int text_len = strlen(text);
+    render_text(ft, text, text_len, (vector2){260.0, 400.0}, 1.0f, (vector3){0.5f, 0.3f, 0.8f});
+
 
     if(shaders == -1) {
         printf("Exiting...\n");

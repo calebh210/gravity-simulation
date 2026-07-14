@@ -169,7 +169,9 @@ void get_input(GLFWwindow* window, Scene* scene) {
     o_was_pressed = o_pressed;
 
     if(display_legend) {
-        draw_legend(scene);
+
+        // render_text(scene->config->ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f});
+        // draw_legend(scene);
     }
 
     static bool n_was_pressed = false;
