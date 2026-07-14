@@ -275,13 +275,7 @@ void render3d(Scene* scene) {
     GLuint orbit_shader = init_orbit_shaders();
 
     // setup the text
-    FT_Setup* ft = ft_setup(scene->config->font);
-
-    char *text;
-    asprintf(&text, "Tracking Object: None");
-    int text_len = strlen(text);
-    render_text(ft, text, text_len, (vector2){260.0, 400.0}, 1.0f, (vector3){0.5f, 0.3f, 0.8f});
-
+    scene->config->ft = ft_setup(scene->config->font);
 
     if(shaders == -1) {
         printf("Exiting...\n");
@@ -526,8 +520,9 @@ void render3d(Scene* scene) {
         cam->rotSpeed = 4.5f * deltaTime * cam->speedMultiplier;
         cam->front = cameraFront;
 
+        // I need to clear the screen before I get_input, since there could be draws in this
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         get_input(window, scene);
-
         // new tracking, capture tracking vector from body to camera in space
         // OR
         // cycled to a different body, recapture the tracking vector
@@ -577,7 +572,6 @@ void render3d(Scene* scene) {
         cam->up = cameraUp;
 
         glfwPollEvents();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaders);
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, (const GLfloat*)projection);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, (const GLfloat*)view);
