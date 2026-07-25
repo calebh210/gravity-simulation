@@ -18,11 +18,11 @@
 // add a new body to the sim during runtime
 void add_new_body(Scene* scene) {
 
+    printf("Adding new body\n");
+
     scene->num_bodies++;
 
-    body_3d** new_bodies_array = realloc(scene->bodies_array, sizeof(body_3d) * scene->num_bodies);
-
-    scene->bodies_array = new_bodies_array;
+    scene->bodies_array = realloc(scene->bodies_array, sizeof(body_3d) * scene->num_bodies);
 
     // need to setup new body here
     body_3d* b = malloc(sizeof(body_3d));
@@ -30,37 +30,70 @@ void add_new_body(Scene* scene) {
     glGenBuffers(1, &b->vbo);
     glGenVertexArrays(1, &b->vao);
 
+
+    // This is super tedious, there has to be a better way to do thos
     float n;
-
     printf("Enter X Pos for new obj: \n");
-
     scanf("%f", &n);
-
     b->pos.x = n;
-    b->pos.y = 0;
-    b->pos.z = 0;
 
-    b->velocity.x = 0;
-    b->velocity.y = 0;
-    b->velocity.z = 0;
+    printf("Enter Y Pos for new obj: \n");
+    scanf("%f", &n);
+    b->pos.y = n;
 
-    b->name = "test";
+
+    printf("Enter Z Pos for new obj: \n");
+    scanf("%f", &n);
+    b->pos.z = n;
+
+    printf("Enter X Velocity for new obj: \n");
+    scanf("%f", &n);
+    b->velocity.x = n;
+    
+    printf("Enter Y Velocity for new obj: \n");
+    scanf("%f", &n);
+    b->velocity.y = n;
+
+    printf("Enter Z Velocity for new obj: \n");
+    scanf("%f", &n);
+    b->velocity.z = n;
+
+    // Hardcoded for now
+    b->rotation = (vector3){0.0f, 0.0f, 0.0f};
+    b->rotational_period = (vector3){0.0f, 0.0f, 0.0f};
+
+    b->name = "New Object";
 
     b->color.r = 0.5f;
     b->color.g = 0.5f;
     b->color.b = 0.5f;
 
     double mass;
+
     printf("Enter Mass for new obj: \n");
     scanf("%lf", &mass);
-
-    b->radius = 100E8;
     b->mass = mass;
 
-    b->has_texture = false;
+    double radius;
+    printf("Enter Radius for new obj: \n");
+    scanf("%lf", &radius);
+
+    b->radius = radius;
+
+
+    b->has_texture = true;
+    b->texture_path = "misc/textures/earth2048.bmp";
+
+
+    if(b->has_texture) {
+        load_texture(b);
+    }
+
     b->has_model = false;
 
-    b->texture = 0;
+    
+
+    b->orbit = initOrbit();
 
     vector3_da vertices;
     vector2_da uvs;
@@ -98,5 +131,7 @@ void add_new_body(Scene* scene) {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)((vertices.size + normals.size) * sizeof(vector3)));
     glEnableVertexAttribArray(2);
 
-    scene->bodies_array[(scene->num_bodies - 1)] = b;
+    // scene->bodies_array[(scene->num_bodies) - 1] = b;
+    scene->bodies_array[(scene->num_bodies) - 1] = b;
+
 }

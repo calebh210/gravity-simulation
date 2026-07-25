@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "graphics/grid.h"
-#include "math/matrix/matrix4.h"
 #include "utils/shaders_parser.h"
 
 void init_grid(Grid* g) {
@@ -113,6 +112,13 @@ void init_grid(Grid* g) {
 
     // store the shaders in the grid object
     g->shaders = grid_shaders;
+}
+
+
+void set_grid_locations(){
+    // Update grid_r_s, and grid_radius here
+    // Callback to this function when an objet is added / removed at runtime
+    // Since those will need to get updated or else we will crash
 }
 
 void draw_grid(Grid* g, matrix4 view, matrix4 projection) {

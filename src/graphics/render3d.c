@@ -127,7 +127,7 @@ void init_3d_bodies(body_3d* bodies_array[], int num_bodies) {
         // sphere
         if(b->has_model) {
 
-            printf("loading custom model filename = %s\n", b->model);
+            printf("loading custom model. filename = %s\n", b->model);
             char* filename = b->model;
             load_obj(filename, &vertices, &uvs, &normals);
 
@@ -336,22 +336,23 @@ void render3d(Scene* scene) {
     // Init the grid
     Grid* g = (Grid*)malloc(sizeof(Grid));
     init_grid(g);
-    GLuint gridPosLoc = glGetUniformLocation(g->shaders, "gridPos");
+    scene->grid = g;
 
     glUseProgram(g->shaders);
     GLuint gridPosCountLoc = glGetUniformLocation(g->shaders, "gridPosCount");
     if(gridPosCountLoc == -1) {
         printf("Failed to get gridPosCount uniform");
     }
-    glUniform1i(gridPosCountLoc, num_bodies);
 
-    // arrays in the grid shaders
-    vector3 planetGridPos[num_bodies];
-    float grid_r_s[num_bodies];
-    float grid_radius[num_bodies];
+    glUniform1i(gridPosCountLoc, scene->num_bodies);
+    
+
+
+    // Max num of planets allowed in the grid (arbitrary currently)
+    // vector3 planetGridPos[num_bodies];
+    vector3 planetGridPos[32];
 
     glUseProgram(shaders);
-
     // get the uniform locations
     // the model view and projection of the bodies
     GLuint modelLoc = glGetUniformLocation(shaders, "model");
@@ -394,19 +395,16 @@ void render3d(Scene* scene) {
     // This gets added to in the init bodies loop below
     int numLightSources = 0;
 
-    // This is sorta-temp code while I figure out how I want to do the
-    // translations long-term
-    vector3 init_bodies_pos[num_bodies];
     for(int i = 0; i < num_bodies; i++) {
 
-        init_bodies_pos[i] = scene->bodies_array[i]->pos;
-        grid_r_s[i] = normalize(scharzchild_radius(scene->bodies_array[i]->mass), 0,
+        g->r_s[i] = normalize(scharzchild_radius(scene->bodies_array[i]->mass), 0,
                                 SPACE_MAX / 2);
-        grid_radius[i] = normalize(scene->bodies_array[i]->radius, 0, SPACE_MAX);
+
+        g->radius[i] = normalize(scene->bodies_array[i]->radius, 0, SPACE_MAX);
 
         printf("Schwarzchild Radius of %d = %f, Normalized = %.8lf\n", i + 1,
-               scharzchild_radius(scene->bodies_array[i]->mass), grid_r_s[i]);
-        printf("Normalized Radius = %f\n", grid_radius[i]);
+               scharzchild_radius(scene->bodies_array[i]->mass), g->r_s[i]);
+        printf("Normalized Radius = %f\n", g->radius[i]);
 
         // Checking to see if the body is a star, and adding to numLightSources if
         // it is
@@ -583,6 +581,14 @@ void render3d(Scene* scene) {
 
         for(int i = 0; i < scene->num_bodies; i++) {
 
+            g->r_s[i] = normalize(scharzchild_radius(scene->bodies_array[i]->mass), 0,
+                                SPACE_MAX / 2);
+            g->radius[i] = normalize(scene->bodies_array[i]->radius, 0, SPACE_MAX);
+
+            glUseProgram(g->shaders);
+            glUniform1i(gridPosCountLoc, scene->num_bodies);
+
+
             body_3d* b = scene->bodies_array[i];
 
             // Normalized Positions of the bodies
@@ -633,12 +639,15 @@ void render3d(Scene* scene) {
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, (const GLfloat*)model);
 
             // check if texturing is enabled for this object
+            // Need to unbind the texture if texturing isnt enabled
             if(b->has_texture) {
-
-                glUniform1i(glGetUniformLocation(shaders, "load_texture"),
-                            b->has_texture);
                 glBindTexture(GL_TEXTURE_2D, b->texture);
+            } else {
+                glBindTexture(GL_TEXTURE_2D, 0);
             }
+            
+            glUniform1i(glGetUniformLocation(shaders, "load_texture"),
+            b->has_texture);
 
             glBindVertexArray(b->vao);
 
@@ -672,9 +681,9 @@ void render3d(Scene* scene) {
 
         if(scene->config->draw_grid) {
             glUseProgram(g->shaders);
-            glUniform1fv(10, num_bodies, (const GLfloat*)grid_radius);
-            glUniform1fv(schwarzchildRadiusLoc, num_bodies, (const GLfloat*)grid_r_s);
-            glUniform3fv(gridPosLoc, num_bodies, (const GLfloat*)planetGridPos);
+            glUniform1fv(10, scene->num_bodies, (const GLfloat*)g->radius);
+            glUniform1fv(schwarzchildRadiusLoc, scene->num_bodies, (const GLfloat*)g->r_s);
+            glUniform3fv(glGetUniformLocation(g->shaders, "gridPos"), scene->num_bodies, (const GLfloat*)planetGridPos);
             draw_grid(g, view, projection);
         }
 
