@@ -12,9 +12,9 @@
 // Determine the acceleration on body i from N other bodies in the system
 // Newtonian Physics
 // N = NUM_BODIES
-[[gnu::pure]] static vector3 f_v_nbody_3d(double t, vector3 pos_self, body_3d* bodies[], int index, int N){
+static vector3 f_v_nbody_3d(double t, vector3 pos_self, body_3d* bodies[], int index, int N){
 
-    vector3 accel = {0,0}; // init accel
+    vector3 accel = {0.0f,0.0f,0.0f}; // init accel
 
     // iterate the bodies list, and calculate the force to self
     for(int i = 0; i < N; i++){
