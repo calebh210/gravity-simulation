@@ -22,7 +22,7 @@ Orbit* initOrbit() {
     // orbit->shaders = init_orbit_shaders();
 
     // this can overflow
-    int ORBIT_LIMIT = 10000;
+    int ORBIT_LIMIT = 100000;
 
     glGenBuffers(1, &orbit->vbo);
     glGenVertexArrays(1, &orbit->vao);
@@ -43,7 +43,7 @@ Orbit* initOrbit() {
 void updateOrbits(Orbit* orbit, vector3 coords) {
 
     // this can overflow
-    int ORBIT_LIMIT = 10000;
+    int ORBIT_LIMIT = 100000;
 
     point* new_point = (point*)malloc(sizeof(point));
     new_point->pos = coords;

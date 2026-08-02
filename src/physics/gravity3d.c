@@ -8,6 +8,9 @@
     return v;
 }
 
+// TODO! Re-write this to be cleaner
+// TODO! Make dedicate dvector3 pipelines for more accurate physics
+
 // RK4 Helper Functional
 // Determine the acceleration on body i from N other bodies in the system
 // Newtonian Physics
@@ -28,7 +31,7 @@ static vector3 f_v_nbody_3d(double t, vector3 pos_self, body_3d* bodies[], int i
 
         double r = vec3_distance_between(pos_self, bodies[i]->pos);
 
-        dvector3 ddx = scale_dvec3(vector3_to_dvector3(subtract_vec3s(bodies[i]->pos, pos_self)), G*bodies[i]->mass); 
+        vector3 ddx = scale_vec3(subtract_vec3s(bodies[i]->pos, pos_self), G*bodies[i]->mass); 
 
         //prevent accel from going to infinity
         // using a dampner maybe? will look into
@@ -45,10 +48,12 @@ static vector3 f_v_nbody_3d(double t, vector3 pos_self, body_3d* bodies[], int i
             exit(0);
         }
 
-        ddx = scale_dvec3(ddx, 1 / (r * r * r));
+        ddx = scale_vec3(ddx, 1 / (r * r * r));
 
         // There is precision lost here
-        accel = add_vec3s(accel, dvector3_to_vector3(ddx));
+        accel = add_vec3s(accel, ddx);
+
+        // printf("ACCEL for %i = %f, %f, %f\n", index, accel.x, accel.y, accel.z);
 
     }
 
