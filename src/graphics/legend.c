@@ -7,37 +7,34 @@
 // https://learnopengl.com/In-Practice/Text-Rendering
 // Takes the path of a font
 // So you can chose your own!
-FT_Setup* ft_setup(char* font){
+FT_Setup* ft_setup(char* font) {
 
     FT_Setup* setup = malloc(sizeof(FT_Setup));
 
     // Array containing the 128 ascii chars
-    Character* character_array = malloc(sizeof(Character) * 128);  
+    Character* character_array = malloc(sizeof(Character) * 128);
 
     // disabled 4 byte alignment enforcemment
     // might cause UD later in program?
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     FT_Library ft;
-    if (FT_Init_FreeType(&ft))
-    {
+    if(FT_Init_FreeType(&ft)) {
         printf("Error: Could not init FreeType Library\n");
         exit(1);
     }
 
     FT_Face face;
-    if (FT_New_Face(ft, font, 0, &face))
-    {
-        printf("Error: Failed to load font\n");  
+    if(FT_New_Face(ft, font, 0, &face)) {
+        printf("Error: Failed to load font\n");
         exit(1);
     }
 
-    FT_Set_Pixel_Sizes(face, 0, 48);  
+    FT_Set_Pixel_Sizes(face, 0, 48);
 
-    for(unsigned char c = 0; c < 128; c++){
+    for(unsigned char c = 0; c < 128; c++) {
 
-        if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-        {
+        if(FT_Load_Char(face, c, FT_LOAD_RENDER)) {
             printf("Error: Failed to load glpyh\n");
             exit(1);
         }
@@ -54,8 +51,7 @@ FT_Setup* ft_setup(char* font){
             0,
             GL_RED,
             GL_UNSIGNED_BYTE,
-            face->glyph->bitmap.buffer
-        );
+            face->glyph->bitmap.buffer);
         // set texture options
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -66,14 +62,12 @@ FT_Setup* ft_setup(char* font){
         ivector2 bearing = {face->glyph->bitmap_left, face->glyph->bitmap_top};
 
         Character ch = {
-            texture, 
+            texture,
             size,
             bearing,
-            face->glyph->advance.x
-        }; 
+            face->glyph->advance.x};
 
         character_array[c] = ch;
-
     }
 
     glGenVertexArrays(1, &setup->VAO);
@@ -84,7 +78,7 @@ FT_Setup* ft_setup(char* font){
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0); 
+    glBindVertexArray(0);
 
     const char* vert_path = "shaders/legend.vert";
     char* vertex_shader = parse_shader_file(vert_path);
@@ -92,18 +86,18 @@ FT_Setup* ft_setup(char* font){
     const char* frag_path = "shaders/legend.frag";
     char* fragment_shader = parse_shader_file(frag_path);
 
-    GLuint vs = glCreateShader( GL_VERTEX_SHADER );
-    glShaderSource( vs, 1, (const GLchar**)&vertex_shader, NULL );
-    glCompileShader( vs );
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, (const GLchar**)&vertex_shader, NULL);
+    glCompileShader(vs);
 
-    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER );
-    glShaderSource( fs, 1, (const GLchar**)&fragment_shader, NULL );
-    glCompileShader( fs );
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, (const GLchar**)&fragment_shader, NULL);
+    glCompileShader(fs);
 
     GLuint legend_shaders = glCreateProgram();
-    glAttachShader( legend_shaders, fs );
-    glAttachShader( legend_shaders, vs );
-    glLinkProgram( legend_shaders );
+    glAttachShader(legend_shaders, fs);
+    glAttachShader(legend_shaders, vs);
+    glLinkProgram(legend_shaders);
     glUseProgram(legend_shaders);
 
     float t = 512;
@@ -114,34 +108,29 @@ FT_Setup* ft_setup(char* font){
     float f = 1000;
 
     float projection[] = {
-        2.0f / (r-l), 0.0f, 0.0f, -(r + l) / ( r - l),
-        0.0f, 2.0f / ( t -b ), 0.0f, -(t + b) / (t - b),
+        2.0f / (r - l), 0.0f, 0.0f, -(r + l) / (r - l),
+        0.0f, 2.0f / (t - b), 0.0f, -(t + b) / (t - b),
         0.0f, 0.0f, -2.0f / (f - n), -(f + n) / (f - n),
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-
+        0.0f, 0.0f, 0.0f, 1.0f};
 
     GLuint projLoc = glGetUniformLocation(legend_shaders, "projection");
 
-    if(projLoc == -1){
+    if(projLoc == -1) {
         printf("Failed to apply projection shader to legend \n");
     }
 
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
 
+    setup->character_array = character_array;
+    setup->shaders = legend_shaders;
 
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    setup->character_array = character_array;
-    setup->shaders = legend_shaders;
-
     return setup;
-
 }
 
-void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, float scale, vector3 color){ 
-
+void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, float scale, vector3 color) {
 
     glUseProgram(ft->shaders);
 
@@ -156,7 +145,7 @@ void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, floa
     float x = position.x;
     float y = position.y;
 
-    for(int i = 0; i < text_len; i++ ){
+    for(int i = 0; i < text_len; i++) {
 
         Character ch = ft->character_array[text[i]];
 
@@ -168,19 +157,18 @@ void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, floa
 
         // update VBO for each character
         float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },            
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
+            {xpos, ypos + h, 0.0f, 0.0f},
+            {xpos, ypos, 0.0f, 1.0f},
+            {xpos + w, ypos, 1.0f, 1.0f},
 
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }           
-        };
+            {xpos, ypos + h, 0.0f, 0.0f},
+            {xpos + w, ypos, 1.0f, 1.0f},
+            {xpos + w, ypos + h, 1.0f, 0.0f}};
         // render glyph texture over quad
         glBindTexture(GL_TEXTURE_2D, ch.TextureID);
         // update content of VBO memory
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -193,34 +181,34 @@ void render_text(FT_Setup* ft, char text[], int text_len, vector2 position, floa
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
-
 }
 
-
-void draw_legend(FT_Setup* ft, Camera* cam, body_3d* bodies_array[], double fps){
+void draw_legend(Scene* scene) {
 
     char* text;
     float scale = 0.4f;
+    float fps = scene->framerate;
 
-    if(cam->tracking){
-        asprintf(&text, "Tracking Object: %s", bodies_array[cam->tracked_body]->name);
+    if(scene->cam->tracking) {
+        asprintf(&text, "Tracking Object: %s", scene->bodies_array[scene->cam->tracked_body]->name);
+        // printf("Tracking Object: %s\n", scene->bodies_array[scene->cam->tracked_body]->name);
+
     } else {
         asprintf(&text, "Tracking Object: None");
     }
 
     int text_len = strlen(text);
-    render_text(ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(scene->config->ft, text, text_len, (vector2){260.0, 400.0}, scale, (vector3){0.5f, 0.3f, 0.8f});
 
     char* fps_text;
     asprintf(&fps_text, "FPS: %0.1f", fps);
     text_len = strlen(fps_text);
 
-    render_text(ft, fps_text, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
+    render_text(scene->config->ft, fps_text, text_len, (vector2){260.0, 350.0}, scale, (vector3){0.5f, 0.3f, 0.8f});
 
     char* time;
     asprintf(&time, "Runtime: %0.3f", glfwGetTime());
     text_len = strlen(time);
 
-    render_text(ft, time, text_len, (vector2){260.0, 300.0}, scale, (vector3){0.5f, 0.3f, 0.8f} );
-
+    render_text(scene->config->ft, time, text_len, (vector2){260.0, 300.0}, scale, (vector3){0.5f, 0.3f, 0.8f});
 }

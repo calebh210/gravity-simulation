@@ -14,12 +14,8 @@ For a full list of contributors, view the [AUTHORS](AUTHORS) file
 ![Texturing](misc/images/texture-example.png "Planets with textures!")
 
 ## To Do
-- Add checking if init values make sense for "relative" frame
 - Raytracing?
 - Allow objects to be "eaten" by black holes (Don't pause the simulation, just remove the object)
-- Make the orbit trails configurable
-- Add textures?
-- Make the bodies spin? (would need textures)
 - Make the lighting dim the further you are from an object
 - I'm not entirely sure the COG frame is 100% correct. I'll need to re-review it at a later date
 
@@ -108,6 +104,7 @@ The different keys that exist are:
 - Radius: The radius of the body in meters. Scientific notation is allowed. (Ex. 10E3, 1.65E5)
 - Position: Two (or three) values seperated by a comma to represent the position vector of the body in meters. Scientific notation is allowed. (Ex. 10E3, 1.65E5)
 - Velocity: Two (or three) values seperated by a comma to represent the velocity vector of the body in meters. Scientific notation is allowed. (Ex. 10E3, 1.65E5)
+- Rotation: Three values seperated by a comma to represent the rotational period (in Earth days) of the object
 - Color: Hex color to define the color of the body
 - Type: (currently only star is supported)
     - Star - Gives the body a 100% ambient glow and illuminates other bodies

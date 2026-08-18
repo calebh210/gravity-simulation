@@ -5,7 +5,7 @@
 #include "utils/utils.h"
 #include "math/matrix/matrix4.h"
 
-typedef struct Orbit{
+typedef struct Orbit {
     GLuint vao;
     GLuint vbo;
     GLuint* shaders;

@@ -1,13 +1,14 @@
 #ifndef VECTOR4_H
 #define VECTOR4_H
 
-//3 Dimensional Vector
-typedef struct 
+// 3 Dimensional Vector
+typedef struct
 {
-    double x; 
-    double y;
-    double z;
-    double w;
+    float x;
+    float y;
+    float z;
+    float w;
+
 } vector4;
 
 // normalize a 4d vector to something that opengl can render
@@ -20,7 +21,7 @@ vector4 scale_vec4(vector4 vec, double s);
 // Add two vectors and return their sum
 vector4 add_vec4s(vector4 vec1, vector4 vec2);
 
-//subtract two vec2s from eachother
+// subtract two vec2s from eachother
 vector4 subtract_vec4s(vector4 vec1, vector4 vec2);
 
 double dot_vec4s(vector4 vec1, vector4 vec2);

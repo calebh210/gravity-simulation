@@ -6,6 +6,7 @@ Bodies:
     Radius: 695700E4
     Position: 0,0,0
     Velocity: 0E3,0E3,0E3
+    Rotation: 0,1,0 # Expressed as the rotational period, in days (1 day = 86400 seconds), about that axis (X Y Z)
     Color: ff1320
     Type: Star
     Texture: misc/textures/red_dwarf_star.jpg # an optional line to given the body a texture to render

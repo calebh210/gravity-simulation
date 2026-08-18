@@ -3,7 +3,6 @@
 
 #include "graphics/render3d.h"
 
-void get_input(GLFWwindow* window, Camera* cam);
-
+void get_input(GLFWwindow* window, Scene* scene);
 
 #endif
