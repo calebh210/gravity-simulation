@@ -14,6 +14,7 @@
 #include "graphics/loader/obj_loader.h"
 #include "graphics/scene.h"
 #include "graphics/legend.h"
+#include "graphics/settings.h"
 
 // OpenGL reference: https://antongerdelan.net/opengl/hellotriangle.html
 // Render Timestep reference: https://gafferongames.com/post/fix_your_timestep/
@@ -421,9 +422,12 @@ void render3d(Scene* scene) {
 
     glUniform1i(numLightSourcesLoc, numLightSources);
 
+    
+    SimulationMode testMode = HIGH_PRECISION;
+
     // TODO! There's too many here
     const double FIXED_DT = (1.0 / 240.0) ; // this is what we render at
-    const double DT = 1.0;                   // this is our h value in the integration function
+    const double DT = get_dt_from_settings(testMode);             // this is our h value in the integration function
     const double MAX_FRAME_TIME = 0.25;
     double accumulator = 0.0;
     double lastTime = glfwGetTime(); // Time of the last debug message
@@ -458,25 +462,17 @@ void render3d(Scene* scene) {
             frameTime = MAX_FRAME_TIME;
         }
 
-        // TODO! Look into why this doesnt work. It was causing a bug where the sim would just stop??
         accumulator += frameTime * TIMESKIP; // Sim time is renderTime * TIMESKIP. Ex: if timeskip is 5, physics renders at 5x realtime
 
         // TODO!!!! LOOK INTO THIS
         // When DT is = 1.0, physics fails to update properly??
         // step_physics_3d(scene->bodies_array, scene->num_bodies, ref_frame, 0, 1.0f); // This is temp
 
-        // printf("Value of accumulator = %lf\n", accumulator);
-
         while(accumulator >= DT) {
-
-            // for(int i = 0; i < TIMESKIP; i++) {
-            //     step_physics_3d(scene->bodies_array, scene->num_bodies, ref_frame, 0, DT);
-            //     physicsFrames++;
-            //     // sim_t += FIXED_DT;
-            // }
 
             step_physics_3d(scene->bodies_array, scene->num_bodies, ref_frame, 0, DT);
             accumulator -= DT;
+
         }
 
         if(currentTime - lastDebugTime >= 1.0 &&
@@ -491,7 +487,6 @@ void render3d(Scene* scene) {
                        body_pos.z, cam->tracking_vector.r, cam->tracking_vector.az,
                        cam->tracking_vector.el);
             }
-            printf("\nPhysics Frames = %d\n", physicsFrames);
             lastDebugTime += 1.0;
             nbFrames = 0;
         }

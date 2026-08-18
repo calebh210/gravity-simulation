@@ -40,7 +40,6 @@ void initBodies(body_2d* bodies_array[], int num_bodies) {
 
         glBindVertexArray(b->vao);
         glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, b->vbo);
         glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, NULL);
     }
 }

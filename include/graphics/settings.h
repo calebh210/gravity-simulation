@@ -12,14 +12,26 @@
 // 10.0 = Fast 
 // 100.0 = Very Fast
 // 1000.0 = Super Fast
-enum SimulatonMode {
+typedef enum {
     SUPER_HIGH_PRECISION,
     HIGH_PRECISION,
     MEDIUM_PRECISION,
     FAST,
     VERY_FAST,
     SUPER_FAST
-}
+} SimulationMode;
 
+
+float get_dt_from_settings(SimulationMode mode){
+
+    switch(mode){
+        case SUPER_HIGH_PRECISION: return 0.1f;
+        case HIGH_PRECISION: return 1.0f;
+        case MEDIUM_PRECISION: return 5.0f;
+        case FAST: return 10.0f;
+        case VERY_FAST: return 100.0f;
+        case SUPER_FAST: return 1000.0f;
+    }
+}
 
 #endif

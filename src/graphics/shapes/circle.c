@@ -4,6 +4,7 @@
 #include "utils/constants.h"
 
 // Function to draw a circle at (cx, cy) with radius
+// TODO: Update this func to use dyanmic arrays
 [[gnu::pure]] double* drawCircle(vector2 c, float r, int num_segments) {
 
     // Center of circle
