@@ -37,6 +37,20 @@ enum REFERENCE_FRAME validate_rendering_mode(char* REF_FRAME) {
     return frame;
 }
 
+static struct option long_options[] =
+{
+    {"debug", no_argument, NULL, 'd'},
+    {"3d", optional_argument, NULL, '3'},
+    {"mode", required_argument, NULL, 'm'},
+    {"time", optional_argument, NULL, 't'},
+    {"help", no_argument, NULL, 'h'},
+    {"num_bodies", required_argument, NULL, 'n'},
+    {"config-file", required_argument, NULL, 'f'},
+    {"font-file", required_argument, NULL, 'w'},
+    {"raytracing", no_argument, NULL, 'r'},
+    {NULL, 0, NULL, 0}
+};
+
 int main(int argc, char** argv) {
     char* FRAME = NULL; // messy?
     enum REFERENCE_FRAME REF_FRAME;
@@ -48,7 +62,7 @@ int main(int argc, char** argv) {
     char* config_file = "init.yaml"; // default config file name
     char* font = "fonts/Inter.ttf";
 
-    while((opt = getopt(argc, argv, "dm:ht:n:3f:w:")) != -1) {
+    while((opt = getopt_long(argc, argv, "dm:ht:n:3f:w:r",long_options, NULL)) != -1) {
         switch(opt) {
         case 'd':
             DEBUG = true;
@@ -81,7 +95,7 @@ int main(int argc, char** argv) {
             break;
         case '?':
             printf("Unknown Option: %c\n", optopt);
-            printf("Print the help menu with -h\n");
+            printf("Print the help menu with \'--help\' (-h) \n");
             exit(0);
             break;
         case 'f':
@@ -91,6 +105,9 @@ int main(int argc, char** argv) {
         case 'w':
             printf("Font set to %s\n", optarg);
             font = optarg;
+            break;
+        case 'r':
+            printf("Tracin the rays");
             break;
         default:
             print_help_menu();
