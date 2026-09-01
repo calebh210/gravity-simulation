@@ -74,8 +74,8 @@ void load_obj(const char* filename, vector3_da* out_vertices, vector2_da* out_uv
             int_da_push(&uvIndices, uvIndex[2]);
 
             int_da_push(&normalIndices, normalIndex[0]);
-            int_da_push(&normalIndices, normalIndex[0]);
-            int_da_push(&normalIndices, normalIndex[0]);
+            int_da_push(&normalIndices, normalIndex[1]);
+            int_da_push(&normalIndices, normalIndex[2]);
         }
     }
 

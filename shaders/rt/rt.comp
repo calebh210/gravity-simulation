@@ -1,0 +1,426 @@
+#version 430
+layout(local_size_x = 1, local_size_y = 1) in;
+layout(rgba32f, binding = 0) uniform image2D img_output;
+
+layout (std140, binding = 1) uniform Body {
+    vec4 objectColor[16];
+    vec4 objectPos[16];
+    vec4 radius[16];
+};
+
+layout (std140, binding = 2) uniform Camera {
+  vec4 cameraPos;
+  vec4 cameraDirection;
+  vec4 cameraRight;
+  vec4 cameraUp;
+  vec4 tanHalfFov;
+};
+
+uniform vec3 cam;
+uniform float pitch;
+uniform float yaw;
+uniform int frame; // used for entropy
+
+// Shoutout to Sebastian Lague: https://www.youtube.com/watch?v=Qz0KTGYJtUk
+
+struct Ray {
+
+  vec3 direction;
+  vec3 origin;
+  float r, theta, phi;
+  float dr, dtheta, dphi;
+  float E;
+
+};
+
+struct ObjectMaterial {
+
+  vec4 color;
+  vec4 emissionColour;
+  float emissionStrength;
+
+};
+
+struct RayInfo {
+
+  bool hit;
+  vec3 hitpoint;
+  vec3 normal;
+  float close_object; // track what is closest to camera
+  ObjectMaterial material;
+
+};
+
+const float r_s = 1;
+
+//https://observablehq.com/@riccardoscalco/pcg-random-number-generators-in-glsl
+float pcg_rand(inout uint v) {
+  v = v * uint(747796405) + uint(2891336453);
+  uint word = ((v >> ((v >> uint(28)) + uint(4))) ^ v) * uint(277803737);
+  word = (word >> uint(22)) ^ word;
+  return word / 4294967295.0;
+}
+
+float random_value_normal_distribution(inout uint state)
+{
+  // Thanks to https://stackoverflow.com/a/6178290
+  float theta = 2 * 3.1415926 * pcg_rand(state);
+  float rho = sqrt(-2 * log(pcg_rand(state)));
+  return rho * cos(theta);
+}
+
+vec3 rand_direction(inout uint state) {
+
+  float x = random_value_normal_distribution(state);
+  float y = random_value_normal_distribution(state);
+  float z = random_value_normal_distribution(state);
+
+  return normalize(vec3(x,y,z));
+
+}
+
+vec3 rand_hemisphere_direction(vec3 normal, inout uint state){
+
+  vec3 rand_dir = rand_direction(state);
+  return rand_dir * sign(dot(normal, rand_dir));
+
+}
+
+
+vec3 schwarzchild_equation_of_motion(vec3 polar_coords, vec3 d_polar_coords, float E){
+
+  // vec is as follows = r, theta, phi
+
+  float r = polar_coords.x;
+  float theta = polar_coords.y;
+  float phi = polar_coords.z;
+
+  float dr = d_polar_coords.x;
+  float dtheta = d_polar_coords.y;
+  float dphi = d_polar_coords.z;
+
+  float f = max(1.0 - r_s / r, 1e-6);
+  float sin_theta = max(abs(sin(theta)), 1e-6);
+  r = max(r, 1e-6);
+
+  // Geodesic Math
+  // Acceleration along phi
+  float d2phi = -2 * ( (dr * dphi) / r ) + 2 * (cos(theta) / sin_theta) * dtheta * dphi; // No cotangent in GLSL, but cot = cos / sin
+
+  // float eps = 1e-7;
+  // if (abs(sin(theta)) < eps) {
+  //     d2phi = 0.0;
+  // }
+
+  // Acceleration along theta
+
+  float d2theta = -2.0 * ((dr * dtheta) / r) - sin_theta * cos(theta) * dphi * dphi;
+
+  float dlambda = E / f;
+  // I'm unsure how accurate this is
+  float d2r =
+  -0.5 * r_s * (r - r_s) / (r * r * r) * (dlambda * dlambda)
+  -0.5 * r_s * (r - r_s) / (r * r * r) * (1.0 / (1.0 - (r_s / r))) * (dr * dr)
+  + (r + r_s) * (dtheta * dtheta)
+  + (r - r_s) * (sin_theta * sin_theta) * (dphi * dphi);
+
+
+  vec3 d2_polar_coords = {d2r, d2theta, d2phi};
+
+  return d2_polar_coords;
+
+}
+
+// This sends each ray out x distance ( x = MAX_STEP_COUNT x DST_PER_STEP)
+// It's useful to do this when modifying the direction of the array at each step
+ 
+RayInfo cast_ray_in_steps(Ray ray) {
+
+  float t = 0.01;
+
+  RayInfo info;
+  info.hit = false;
+
+  int MAX_STEP_COUNT = 1000;
+
+  float DST_PER_STEP = 0.1; // how far you forward you go each step -> lower = higher accuracy
+
+  for(int i = 0; i < 1; i++){
+
+    // float sphere_r = radius[i].x;
+
+    float sphere_r = 5.0;
+
+    // vec3 sphere_c = {objectPos[i].x, objectPos[i].y, objectPos[i].z};
+    vec3 sphere_c = {0, 0, -7};
+
+    // use a temp ray origin/direction to not mess up multi-object scenes
+    vec3 temp_r_origin = ray.origin;
+
+    vec3 polar_coords = {ray.r, ray.theta, ray.phi};
+    vec3 d_polar_coords = {ray.dr, ray.dtheta, ray.dphi};
+
+    for(int j = 0; j < MAX_STEP_COUNT; j++){
+
+      //rk4 
+      vec3 k1_x = d_polar_coords; 
+      vec3 k1_v = schwarzchild_equation_of_motion(polar_coords, d_polar_coords, ray.E);
+
+      vec3 k2_x = d_polar_coords + k1_v * (t * 0.5); //multiply by 0.5 is faster than /2
+      vec3 k2_v = schwarzchild_equation_of_motion(polar_coords + k1_x * (t * 0.5), d_polar_coords + k1_v * (t * 0.5), ray.E);
+
+      vec3 k3_x = d_polar_coords + k2_v * (t * 0.5);
+      vec3 k3_v = schwarzchild_equation_of_motion(polar_coords + k2_x * (t * 0.5), d_polar_coords + k2_v * (t * 0.5), ray.E);
+
+      vec3 k4_x = d_polar_coords + k3_v * t;
+      vec3 k4_v = schwarzchild_equation_of_motion(polar_coords + k3_x * t, d_polar_coords + k3_v * t, ray.E);
+
+      //rk4 result
+      polar_coords = polar_coords + ((k1_x + (k2_x * 2) + (k3_x * 2) + k4_x) * t / 6.0);
+      d_polar_coords = d_polar_coords + ((k1_v + (k2_v * 2) + (k3_v * 2) + k4_v) * t / 6.0);
+
+      float r = polar_coords.x;
+      float theta = polar_coords.y;
+      float phi = polar_coords.z;
+
+
+      if (isnan(r) || isnan(theta) || isnan(phi) ||
+          isinf(r) || isinf(theta) || isinf(phi)) {
+          return info;
+      }
+
+      // Back to cartesian for display
+      // ray.origin.x = r * sin(theta) * cos(phi);
+      // ray.origin.y = r * sin(theta) * sin(phi);
+      // ray.origin.z = r * cos(theta);
+      temp_r_origin.x = r * sin(theta) * cos(phi);
+      temp_r_origin.y = r * sin(theta) * sin(phi);
+      temp_r_origin.z = r * cos(theta);
+
+      // this effectively is Euler integration
+      // pos' = pos + velocity * time, in essence 
+      // vec3 p = temp_r_origin + temp_r_direction * DST_PER_STEP;
+      
+      // vec3 p = ray.origin + ray.direction * DST_PER_STEP;
+      // temp_r_origin = ray.origin;
+      vec3 p = temp_r_origin;
+
+      //check if it hit the black hole
+      if(r < r_s) {
+        info.hit = false;
+        return info;
+      }
+
+      // if (distance(temp_r_origin, vec3(0,0,0)) < r_s) {
+      //   info.hit = false;
+      //   return info;
+      // }
+
+      if(distance(p, sphere_c) <= sphere_r){
+      // if(distance(ray.origin, sphere_c) <= sphere_r){
+
+        info.hit = true;
+        return info;
+
+      } else {
+
+        // temp_r_origin = p; // Set the new origin to the current location we just checked
+        // ray.origin = p; // Set the new origin to the current location we just checked
+
+        // changing r_dir here does the light bending im lookin for         
+
+      }
+
+    }
+
+  }
+
+  return info;
+
+}
+
+
+
+RayInfo check_for_collision(Ray r) {
+
+  int MAX_OBJECTS = 3; //  make this a uniform eventually
+
+  float front_object = 100000; // arbitrary far number
+
+  // default info struct
+  // hit needs to be default to false, otherwise we could get UB
+  // by leaving it unset (scary memory issues!!)
+  RayInfo info;
+  info.hit = false;
+
+  for(int i = 0; i < MAX_OBJECTS; i++){
+
+    // default emission strength for an object
+    float emissionStrength = 0.0;
+
+    vec3 sphere_c = {objectPos[i].x, objectPos[i].y, objectPos[i].z};
+
+    float sphere_r = radius[i].x;
+
+    vec3 omc = r.origin - sphere_c;
+
+    float a = dot(r.direction, r.direction);
+
+    float b = 2 * dot(omc, r.direction);
+
+    float c = dot(omc, omc) - sphere_r * sphere_r;
+
+    float bsqmc = b * b - 4 * a * c;
+
+    // check ray misses or is behind camera 
+    if( bsqmc >= 0.0 ) { 
+
+        float dst = (-b - sqrt(bsqmc)) / (2 * a);
+
+        // Check if this hit is closest
+        if (dst >= 0 && dst < front_object){
+
+          ObjectMaterial mat = ObjectMaterial(objectColor[i], objectColor[i], emissionStrength);
+
+          if(i == 0){
+            // Set a light source color to black so it doesn't cast shadows
+            // emissionStrength = 50.0;
+            mat = ObjectMaterial(vec4(1.0), vec4(1.0), 25.0);
+          }
+
+          front_object = dst;
+
+          vec3 hitpoint = r.origin + r.direction * dst;
+          vec3 normal = normalize(hitpoint - sphere_c);
+
+          info.hit = true;
+          info.hitpoint = hitpoint;
+          info.normal  = normal;
+          info.close_object = front_object;
+          info.material = mat;
+
+        }
+      }
+  }
+
+  return info;
+
+}
+
+
+// The tracing part of ray-tracing
+// Track the ray path and try to find a light source
+vec4 trace(Ray ray, inout uint state){
+
+  int MAX_BOUNCE_COUNT = 20;
+  vec4 ray_color = vec4(1.0);
+  vec4 incoming_light = vec4(0.0);
+
+  for (int i = 0; i < MAX_BOUNCE_COUNT; i++){
+
+    RayInfo info = check_for_collision(ray);
+    if(info.hit){
+
+      ray.origin = info.hitpoint;
+
+      // ray.direction = rand_hemisphere_direction(info.normal, state);
+
+      // account for the fact that light coming in at an angle will spread over several pixels
+      ray.direction = normalize(info.normal + rand_direction(state)); // cosine weighted distribtion
+
+      ObjectMaterial mat = info.material;
+
+      vec4 emittedLight = mat.emissionColour * mat.emissionStrength; 
+
+      incoming_light += emittedLight * ray_color;
+
+      ray_color *= mat.color;  // this x2 here is totally arbitraty just to keep brightness
+
+    } else {
+      break;
+    }
+  }
+
+  return incoming_light;
+}
+
+Ray create_ray(vec3 dir, vec3 cameraPos){
+
+  Ray ray;
+  ray.origin = cameraPos;
+  ray.direction = dir;
+
+  // Convert my Ray to polar coords
+  ray.r = length(cameraPos);
+  ray.theta = acos(ray.origin.z / ray.r);
+  ray.phi = atan(ray.origin.y / ray.origin.x);
+
+  float dx = dir.x; // 0
+  float dy = dir.y; // 0
+  float dz = dir.z; // -1
+  ray.dr     = sin(ray.theta)*cos(ray.phi)*dx + sin(ray.theta)*sin(ray.phi)*dy + cos(ray.theta)*dz;
+  ray.dtheta = (cos(ray.theta)*cos(ray.phi)*dx + cos(ray.theta)*sin(ray.phi)*dy - sin(ray.theta)*dz) / ray.r;
+  ray.dphi   = (-sin(ray.phi)*dx + cos(ray.phi)*dy) / (ray.r * sin(ray.theta));
+
+  float f = 1.0 - r_s / ray.r;
+  float dt_dL = sqrt((ray.dr*ray.dr)/f + ray.r*ray.r*(ray.dtheta*ray.dtheta + sin(ray.theta)*sin(ray.theta)*ray.dphi*ray.dphi));
+  ray.E = f * dt_dL;
+
+  return ray;
+  
+}
+
+
+void main() {
+  // base pixel colour for image
+  vec4 pixel = vec4(0.0, 0.0, 0.0, 1.0);
+  
+  // get index in global work group i.e x,y position
+  ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+  float aspect = 1;
+
+  ivec2 dims = imageSize(img_output); // fetch image dimensions
+
+  // Init Ray
+  float u = (2.0 * (pixel_coords.x + 0.5) / dims.x - 1.0) * aspect * tanHalfFov.x;
+  float v = (1.0 - 2.0 * (pixel_coords.y + 0.5) / dims.y) * tanHalfFov.x;
+
+  // This sets up the perspective camera
+  // The UBO is vec4 due to the way std140 does memory allocation / buffer sizes, so we convert back to vec3 here
+  vec3 cameraRight3 = vec3(cameraRight.x, cameraRight.y, cameraRight.z);
+  vec3 cameraUp3 = vec3(cameraUp.x, cameraUp.y, cameraUp.z);
+  vec3 cameraDirection3 = vec3(cameraDirection.x, cameraDirection.y, cameraDirection.z);
+  vec3 cameraPos3 = vec3(cameraPos.x, cameraPos.y, cameraPos.z);
+
+  vec3 dir = normalize(u * cameraRight3 + v * cameraUp3 + cameraDirection3);
+
+  Ray ray = create_ray(dir, cameraPos3);
+  // Ray ray = Ray(dir, cameraPos3);
+
+  // uint state = pixel_coords.x * dims.x + pixel_coords.y; // Seed for RNG
+  uint state = gl_GlobalInvocationID.x + dims.x * gl_GlobalInvocationID.y;
+  state = state + frame * 719393;
+  // state = state * 719393;
+
+  // Real-Time Raycasting Pipeline
+  // bool hit = cast_ray_in_steps(ray).hit;
+
+  // if(hit){
+  //   pixel = vec4(1.0,0.0,0.0,1.0);
+  // }
+
+  // Diffuse RT Pipeline
+  vec4 totalIncomingLight = vec4(0.0);
+
+  for( int idx = 0; idx < 50; idx++){
+
+    totalIncomingLight += trace(ray, state);
+
+  }
+
+  pixel = totalIncomingLight / 50;
+
+  // output to a specific pixel in the image
+  imageStore(img_output, pixel_coords, pixel);
+}

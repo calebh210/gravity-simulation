@@ -10,6 +10,7 @@
 #include "physics/cr3bp.h"
 #include "graphics/render3d.h"
 #include "graphics/render.h"
+#include "graphics/render_rt.h"
 #include "graphics/body.h"
 #include "graphics/scene.h"
 
@@ -59,6 +60,7 @@ int main(int argc, char** argv) {
     int opt;
     int NUM_BODIES = 2; // defaulting this to two seems correct?
     bool is_3d = false;
+    bool is_rt = false;
     char* config_file = "init.yaml"; // default config file name
     char* font = "fonts/Inter.ttf";
 
@@ -107,7 +109,9 @@ int main(int argc, char** argv) {
             font = optarg;
             break;
         case 'r':
-            printf("Tracin the rays");
+            printf("Tracin the rays\n");
+            is_rt = true;
+            is_3d = true; // stopgap to fix some issues in config parsing
             break;
         default:
             print_help_menu();
@@ -143,7 +147,6 @@ int main(int argc, char** argv) {
     body_t* bodies_array_config[NUM_BODIES];
 
     // Parse the config file (init.yaml)
-    // Maybe I should make the option to pick this filename
     Settings* config_settings = parse_config_file(config_file, bodies_array_config, is_3d, NUM_BODIES);
     config_settings->ref_frame = REF_FRAME;
     config_settings->time_delta = TIME_DELTA;
@@ -157,11 +160,24 @@ int main(int argc, char** argv) {
     scene->cam = NULL;
 
     // Convert the generics into the proper type for rendering!
-    if(is_3d) {
+    if(is_rt){
+
         body_3d** bodies_array = malloc(sizeof(body_3d) * NUM_BODIES);
         for(int i = 0; i < NUM_BODIES; i++) {
 
             bodies_array[i] = bodies_array_config[i]->t.as_3d;
+        }
+
+        scene->bodies_array = bodies_array;
+
+        render_rt(scene);
+    }
+    else if(is_3d) {
+        body_3d** bodies_array = malloc(sizeof(body_3d) * NUM_BODIES);
+        for(int i = 0; i < NUM_BODIES; i++) {
+
+            bodies_array[i] = bodies_array_config[i]->t.as_3d;
+
         }
 
         scene->bodies_array = bodies_array;
